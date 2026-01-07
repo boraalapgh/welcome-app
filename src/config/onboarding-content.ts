@@ -38,7 +38,7 @@ export const onboardingContent: Record<UserTypeId, UserTypeConfig> = {
   },
   UT2: {
     label: 'Admin – Invited',
-    steps: ['terms', 'profile'],
+    steps: ['terms', 'profile', 'invites'],
     slides: [
       {
         title: 'Welcome to the Team',
