@@ -1,22 +1,42 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useUserType } from '../context/UserTypeContext';
+import { type SetupStep as ConfigSetupStep } from '../config/onboarding-content';
 
 interface AccountSetupProps {
   onComplete: () => void;
-  onReset: () => void;
 }
 
-type SetupStep = 'legal' | 'profile' | 'organization' | 'invite' | 'complete';
+type SetupStep = 'legal' | 'profile' | 'organization' | 'invite';
 
-const stepOrder: SetupStep[] = ['legal', 'profile', 'organization', 'invite', 'complete'];
-const totalSteps = 4; // Excluding complete
+// Map config step names to component step names
+const configToComponentStep: Record<ConfigSetupStep, SetupStep> = {
+  terms: 'legal',
+  profile: 'profile',
+  organization: 'organization',
+  invites: 'invite',
+};
 
-export function AccountSetup({ onComplete, onReset }: AccountSetupProps) {
-  const [currentStep, setCurrentStep] = useState<SetupStep>('legal');
+export function AccountSetup({ onComplete }: AccountSetupProps) {
+  const { config } = useUserType();
+
+  // Build dynamic step order based on user type config
+  const stepOrder = useMemo<SetupStep[]>(() => {
+    return config.steps.map((s) => configToComponentStep[s]);
+  }, [config.steps]);
+
+  const totalSteps = stepOrder.length;
+
+  const [currentStep, setCurrentStep] = useState<SetupStep>(stepOrder[0]);
   const [isMounted, setIsMounted] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isStepTransitioning, setIsStepTransitioning] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState<'next' | 'back'>('next');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset to first step when config changes
+  useEffect(() => {
+    setCurrentStep(stepOrder[0]);
+  }, [stepOrder]);
 
   // Trigger fade-in on mount
   useEffect(() => {
@@ -55,8 +75,6 @@ export function AccountSetup({ onComplete, onReset }: AccountSetupProps) {
         return organizationName.trim().length > 0;
       case 'invite':
         return true; // Optional step
-      case 'complete':
-        return true;
       default:
         return true;
     }
@@ -71,6 +89,10 @@ export function AccountSetup({ onComplete, onReset }: AccountSetupProps) {
         setCurrentStep(stepOrder[currentIndex + 1]);
         setIsStepTransitioning(false);
       }, 200);
+    } else {
+      // Last step - complete the setup
+      setIsExiting(true);
+      setTimeout(onComplete, 300);
     }
   };
 
@@ -84,29 +106,6 @@ export function AccountSetup({ onComplete, onReset }: AccountSetupProps) {
         setIsStepTransitioning(false);
       }, 200);
     }
-  };
-
-  const handleFinish = () => {
-    setIsExiting(true);
-    setTimeout(onComplete, 300);
-  };
-
-  const handleReset = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      // Reset all state
-      setAgreedToTerms(false);
-      setFirstName('');
-      setLastName('');
-      setRole('');
-      setBio('');
-      setAvatarPreview(null);
-      setOrganizationName('');
-      setOrganizationLogoPreview(null);
-      setInviteRows(Array(5).fill(null).map(() => ({ email: '', role: '' })));
-      setCurrentStep('legal');
-      onReset();
-    }, 300);
   };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,59 +141,6 @@ export function AccountSetup({ onComplete, onReset }: AccountSetupProps) {
   };
 
   const hasAnyInvites = inviteRows.some(row => row.email.trim() !== '');
-
-  // Complete screen
-  if (currentStep === 'complete') {
-    return (
-      <div
-        className={`relative z-10 w-full min-h-full flex items-center justify-center p-4 sm:p-6 md:p-16 transition-all duration-300 ease-out ${
-          !isMounted || isExiting ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
-        }`}
-      >
-        <div className="bg-white border border-[#e6e6e6] rounded-3xl w-full max-w-[720px] min-h-[520px] sm:min-h-[580px] p-6 sm:p-10 md:p-16 flex flex-col items-center justify-center gap-6 shadow-sm text-center">
-          <div className="w-16 h-16 bg-[#5a14bd]/10 rounded-full flex items-center justify-center">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-[#5a14bd]"
-            >
-              <path
-                d="M20 6L9 17L4 12"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-[25px] font-extrabold text-[#1a1a1a] mb-2">
-              You're all set!
-            </h1>
-            <p className="text-[#666] text-sm sm:text-base">
-              Welcome to GoodHabitz Experts. Start creating amazing content!
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <button
-              onClick={handleFinish}
-              className="h-12 px-6 rounded-lg font-extrabold text-base bg-[#5a14bd] text-white hover:bg-[#4a10a0] transition-all"
-            >
-              Get Started
-            </button>
-            <button
-              onClick={handleReset}
-              className="h-12 px-6 rounded-lg font-medium text-base border border-[#e6e6e6] text-[#666] hover:bg-gray-50 transition-all"
-            >
-              Reset & Start Over
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -605,7 +551,7 @@ export function AccountSetup({ onComplete, onReset }: AccountSetupProps) {
         <div className="flex items-center justify-between gap-4 pt-2 flex-1">
           <div className="flex items-center gap-4">
           {/* Left: Back Button */}
-            {currentStep !== 'legal' && (
+            {stepOrder.indexOf(currentStep) > 0 && (
           <div className="w-12 h-12 flex items-center justify-center">
               <button
                 onClick={handleBack}

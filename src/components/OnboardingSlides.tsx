@@ -1,28 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useUserType } from '../context/UserTypeContext';
 
 interface OnboardingSlidesProps {
   onComplete: () => void;
 }
 
-const slides = [
-  {
-    image: '/onboarding-1.jpg',
-    headline: 'Capture your knowledge:',
-    body: 'Transform your expertise into structured, shareable content that scales beyond your time.',
-  },
-  {
-    image: '/onboarding-2.jpg',
-    headline: 'Build engaging courses:',
-    body: 'Create interactive learning experiences with videos, quizzes, and hands-on exercises.',
-  },
-  {
-    image: '/onboarding-3.jpg',
-    headline: 'Grow your audience:',
-    body: 'Reach learners worldwide and build a community around your unique knowledge.',
-  },
-];
-
 export function OnboardingSlides({ onComplete }: OnboardingSlidesProps) {
+  const { config } = useUserType();
+
+  // Map config slides to component format
+  const slides = config.slides.map((slide, index) => ({
+    image: slide.image || `/onboarding-${index + 1}.jpg`,
+    headline: slide.title,
+    body: slide.description,
+  }));
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
