@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useUserType } from '../context/UserTypeContext';
 import { useDebugControls, type DebugElement } from '../context/DebugControlsContext';
 import { userTypeIds, onboardingContent, type UserTypeId } from '../config/onboarding-content';
+import { Switch } from '@/components/ui/switch';
 
 type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete';
 
@@ -222,17 +223,11 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
                           </p>
                           <p className="text-xs text-gray-500">{element.description}</p>
                         </div>
-                        <div
-                          className={`w-8 h-5 rounded-full transition-colors relative ${
-                            enabled ? 'bg-[#5a14bd]' : 'bg-gray-300'
-                          }`}
-                        >
-                          <div
-                            className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                              enabled ? 'translate-x-3.5' : 'translate-x-0.5'
-                            }`}
-                          />
-                        </div>
+                        <Switch
+                          checked={enabled}
+                          onCheckedChange={() => toggle(element.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       </div>
                     </button>
                   );
