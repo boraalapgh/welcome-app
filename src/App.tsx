@@ -4,6 +4,11 @@ import { OnboardingSlides } from './components/OnboardingSlides';
 import { AccountSetup } from './components/AccountSetup';
 import { SettingsSidebar } from './components/SettingsSidebar';
 import { UserTypeProvider } from './context/UserTypeContext';
+import { DebugControlsProvider } from './context/DebugControlsContext';
+import { TransitionProvider } from './context/TransitionContext';
+import { CelebrationParticles } from './components/CelebrationParticles';
+import { CompleteLogo } from './components/CompleteLogo';
+import { LevaControlsProvider } from './components/LevaControls';
 
 type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete';
 
@@ -30,7 +35,7 @@ function AppContent() {
     <UserTypeProvider onFlowReset={handleFlowReset}>
       <div className="relative w-screen h-screen flex flex-col items-center justify-center">
         {/* Settings Sidebar - Prototype Only */}
-        <SettingsSidebar currentPhase={phase} />
+        <SettingsSidebar currentPhase={phase} onPhaseChange={setPhase} />
 
         {/* Persistent background floating elements */}
         <div className="fixed inset-0 opacity-15 overflow-hidden pointer-events-none">
@@ -71,10 +76,16 @@ function AppContent() {
           <AccountSetup onComplete={handleSetupComplete} />
         )}
         {phase === 'complete' && (
-          <div className="text-center z-10 animate-fade-in">
-            <h1 className="text-3xl font-bold text-[#1a1a1a]">You're all set!</h1>
-            <p className="text-lg text-[#666] mt-2">Welcome to Experts Studio</p>
-          </div>
+          <>
+            <CelebrationParticles />
+            <div className="flex flex-col items-center z-10 animate-fade-in">
+              <CompleteLogo />
+              <div className="text-center">
+                <h1 className="text-3xl font-bold text-[#1a1a1a]">You're all set!</h1>
+                <p className="text-lg text-[#666] mt-2">Welcome to Experts Studio</p>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </UserTypeProvider>
@@ -82,7 +93,15 @@ function AppContent() {
 }
 
 function App() {
-  return <AppContent />;
+  return (
+    <DebugControlsProvider>
+      <LevaControlsProvider>
+        <TransitionProvider>
+          <AppContent />
+        </TransitionProvider>
+      </LevaControlsProvider>
+    </DebugControlsProvider>
+  );
 }
 
 export default App;

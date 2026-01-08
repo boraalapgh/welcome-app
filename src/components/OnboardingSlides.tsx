@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useControls, folder, button } from 'leva';
 import { useUserType } from '../context/UserTypeContext';
+import { useTransitions, easingOptions, type EasingType } from '../context/TransitionContext';
+import { useLevaStores } from './LevaControls';
+import {
+  persistedSlideValues,
+  persistSlideValues,
+  clearSlideValues,
+} from '../stores/levaStores';
 
 interface OnboardingSlidesProps {
   onComplete: () => void;
@@ -7,6 +15,128 @@ interface OnboardingSlidesProps {
 
 export function OnboardingSlides({ onComplete }: OnboardingSlidesProps) {
   const { config } = useUserType();
+  const { pageExitDuration, pageScaleFrom, getPageTransition } = useTransitions();
+  const { slidesStore } = useLevaStores();
+
+  // Get persisted values or use defaults
+  const p = persistedSlideValues as Record<string, unknown> | null;
+
+  // Build store option - only include if store is available
+  const storeOption = slidesStore ? { store: slidesStore } : {};
+
+  // Slide transition controls
+  const slideControls = useControls('Slide Carousel', {
+    timing: folder({
+      slideDuration: {
+        value: (p?.slideDuration as number) ?? 500,
+        min: 100,
+        max: 1500,
+        step: 50,
+        label: 'Duration (ms)',
+      },
+      slideEasing: {
+        value: (p?.slideEasing as EasingType) ?? 'ease-out',
+        options: easingOptions,
+        label: 'Easing',
+      },
+    }),
+    inactive: folder({
+      slideScaleInactive: {
+        value: (p?.slideScaleInactive as number) ?? 0.9,
+        min: 0.5,
+        max: 1,
+        step: 0.05,
+        label: 'Inactive Scale',
+      },
+      slideOpacityInactive: {
+        value: (p?.slideOpacityInactive as number) ?? 0.2,
+        min: 0,
+        max: 1,
+        step: 0.1,
+        label: 'Inactive Opacity',
+      },
+    }),
+  }, storeOption);
+
+  // Card animation controls
+  const cardControls = useControls('Card Animation', {
+    cardTransitionDuration: {
+      value: (p?.cardTransitionDuration as number) ?? 500,
+      min: 100,
+      max: 1500,
+      step: 50,
+      label: 'Duration (ms)',
+    },
+    cardEasing: {
+      value: (p?.cardEasing as EasingType) ?? 'ease-out',
+      options: easingOptions,
+      label: 'Easing',
+    },
+  }, storeOption);
+
+  // Step animation controls (shared with AccountSetup)
+  const stepControls = useControls('Step Animation', {
+    stepTranslateDistance: {
+      value: (p?.stepTranslateDistance as number) ?? 16,
+      min: 0,
+      max: 100,
+      step: 4,
+      label: 'Translate (px)',
+    },
+    stepScaleFrom: {
+      value: (p?.stepScaleFrom as number) ?? 1,
+      min: 0.8,
+      max: 1,
+      step: 0.02,
+      label: 'Scale From',
+    },
+  }, storeOption);
+
+  // Actions buttons
+  useControls('Actions', {
+    'Reset Slides': button(() => {
+      clearSlideValues();
+      window.location.reload();
+    }),
+    'Copy Values': button(() => {
+      const exportData = {
+        slideTransitions: {
+          carousel: {
+            duration: slideControls.slideDuration,
+            easing: slideControls.slideEasing,
+            scaleInactive: slideControls.slideScaleInactive,
+            opacityInactive: slideControls.slideOpacityInactive,
+          },
+          card: {
+            duration: cardControls.cardTransitionDuration,
+            easing: cardControls.cardEasing,
+          },
+          step: {
+            translateDistance: stepControls.stepTranslateDistance,
+            scaleFrom: stepControls.stepScaleFrom,
+          },
+        },
+      };
+      navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
+      console.log('Exported slide transition values:', exportData);
+      alert('Slide transition values copied to clipboard! Check console for details.');
+    }),
+  }, storeOption);
+
+  // Persist values on change
+  useEffect(() => {
+    const values = {
+      slideDuration: slideControls.slideDuration,
+      slideEasing: slideControls.slideEasing,
+      slideScaleInactive: slideControls.slideScaleInactive,
+      slideOpacityInactive: slideControls.slideOpacityInactive,
+      cardTransitionDuration: cardControls.cardTransitionDuration,
+      cardEasing: cardControls.cardEasing,
+      stepTranslateDistance: stepControls.stepTranslateDistance,
+      stepScaleFrom: stepControls.stepScaleFrom,
+    };
+    persistSlideValues(values);
+  }, [slideControls, cardControls, stepControls]);
 
   // Map config slides to component format
   const slides = config.slides.map((slide, index) => ({
@@ -32,7 +162,7 @@ export function OnboardingSlides({ onComplete }: OnboardingSlidesProps) {
 
   const handleSkip = () => {
     setIsExiting(true);
-    setTimeout(onComplete, 300);
+    setTimeout(onComplete, pageExitDuration);
   };
 
   const handleNext = () => {
@@ -51,9 +181,12 @@ export function OnboardingSlides({ onComplete }: OnboardingSlidesProps) {
 
   return (
     <div
-      className={`relative z-10 w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out ${
-        !isMounted || isExiting ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
-      }`}
+      className="relative z-10 w-full h-full flex flex-col items-center justify-center"
+      style={{
+        transition: getPageTransition(),
+        opacity: !isMounted || isExiting ? 0 : 1,
+        transform: !isMounted || isExiting ? `scale(${pageScaleFrom})` : 'scale(1)',
+      }}
     >
       {/* Skip button - fixed top right */}
       <button
@@ -80,11 +213,12 @@ export function OnboardingSlides({ onComplete }: OnboardingSlidesProps) {
         {/* Image carousel - 3 cards visible with 56px gap */}
         <div className="relative w-full overflow-visible">
           <div
-            className="flex items-center gap-14 transition-transform duration-500 ease-out"
+            className="flex items-center gap-14"
             style={{
               // marginLeft centers the first card, translateX shifts for navigation
               marginLeft: `calc(50% - min(35vw, 540px) / 2)`,
               transform: `translateX(calc(${-currentSlide} * (min(35vw, 540px) + 56px)))`,
+              transition: `transform ${slideControls.slideDuration}ms ${slideControls.slideEasing}`,
             }}
           >
             {slides.map((slide, index) => {
@@ -93,11 +227,12 @@ export function OnboardingSlides({ onComplete }: OnboardingSlidesProps) {
               return (
                 <div
                   key={index}
-                  className="shrink-0 transition-all duration-500 ease-out origin-center"
+                  className="shrink-0 origin-center"
                   style={{
                     width: 'min(35vw, 540px)',
-                    transform: `scale(${isCurrent ? 1 : 0.9})`,
-                    opacity: isCurrent ? 1 : 0.2,
+                    transform: `scale(${isCurrent ? 1 : slideControls.slideScaleInactive})`,
+                    opacity: isCurrent ? 1 : slideControls.slideOpacityInactive,
+                    transition: `all ${cardControls.cardTransitionDuration}ms ${cardControls.cardEasing}`,
                   }}
                 >
                   <div className="w-full rounded-3xl shadow-[0px_6px_24px_0px_rgba(21,21,21,0.15)] overflow-hidden bg-white">

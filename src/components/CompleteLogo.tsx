@@ -1,22 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import { StarsCanvas } from './StarsCanvas';
 import OrbOriginal from '@/components/OrbOriginal';
+import { StarsCanvas } from './StarsCanvas';
 import { useControls, folder, button } from 'leva';
-import { useDebugControls } from '../context/DebugControlsContext';
-import { persistLogoValues, persistedLogoValues, clearLogoValues } from '../stores/levaStores';
+import { persistedLogoValues, clearLogoValues } from '../stores/levaStores';
 import { useLevaStores } from './LevaControls';
 
-interface WelcomeProps {
-  onComplete?: () => void;
-}
-
-export function Welcome({ onComplete }: WelcomeProps) {
-  const [isExiting, setIsExiting] = useState(false);
-  const logoBgRef = useRef<HTMLDivElement>(null);
-  const { isEnabled } = useDebugControls();
+export function CompleteLogo() {
   const { logoStore } = useLevaStores();
-
-  const pauseAutoAdvance = isEnabled('welcomePauseAuto');
 
   // Get persisted values or use defaults
   const p = persistedLogoValues as Record<string, unknown> | null;
@@ -24,7 +13,7 @@ export function Welcome({ onComplete }: WelcomeProps) {
   // Build store option - only include if store is available
   const storeOption = logoStore ? { store: logoStore } : {};
 
-  // Leva controls for the Orb (shared with CompleteLogo via shared store)
+  // Shared Leva controls with Welcome (same store)
   const orbControls = useControls('Logo Orb', {
     size: folder({
       orbSize: { value: (p?.orbSize as number) ?? 320, min: 100, max: 500, step: 10, label: 'Size (px)' },
@@ -51,7 +40,7 @@ export function Welcome({ onComplete }: WelcomeProps) {
     }, { collapsed: true }),
   }, storeOption);
 
-  // Leva controls for Stars (shared with CompleteLogo via shared store)
+  // Shared Leva controls for Stars (same store as Welcome)
   const starsControls = useControls('Logo Stars', {
     scale: folder({
       globalScale: { value: (p?.globalScale as number) ?? 1.0, min: 0.5, max: 2, step: 0.1, label: 'Global Scale' },
@@ -109,111 +98,45 @@ export function Welcome({ onComplete }: WelcomeProps) {
     }),
   }, storeOption);
 
-  // Persist logo values when they change
-  useEffect(() => {
-    const allValues = {
-      ...orbControls,
-      ...starsControls,
-    };
-    persistLogoValues(allValues);
-  }, [orbControls, starsControls]);
-
-  // Auto-trigger exit after animations complete + 2 second pause
-  useEffect(() => {
-    // Skip auto-advance if paused
-    if (pauseAutoAdvance) return;
-
-    const exitTimer = setTimeout(() => {
-      setIsExiting(true);
-      if (logoBgRef.current) {
-        logoBgRef.current.style.transition = 'opacity 0.8s ease-out';
-        logoBgRef.current.style.opacity = '0';
-      }
-    }, 4000); // 2s for animations to complete + 2s pause
-
-    // Call onComplete after exit animation finishes
-    const completeTimer = setTimeout(() => {
-      onComplete?.();
-    }, 4800); // 4s + 0.8s exit animation
-
-    return () => {
-      clearTimeout(exitTimer);
-      clearTimeout(completeTimer);
-    };
-  }, [onComplete, pauseAutoAdvance]);
-
   return (
-    <div className="relative flex flex-col items-center justify-center gap-6 z-10">
-      {/* Logo with Orb and Stars */}
-      <div
-        className="relative z-10 opacity-0 scale-[0.5] animate-logo-appear overflow-visible"
-        style={{
-          animationDelay: '0.5s',
-          width: orbControls.orbSize,
-          height: orbControls.orbSize,
-        }}
-      >
-        {/* Orb and white background - both fade together */}
-        <div
-          ref={logoBgRef}
-          className="absolute inset-0"
-          style={{ zIndex: 0 }}
-        >
-          {/* Blurred white background for soft edges */}
-          <div
-            className="absolute inset-[-5%] rounded-full bg-white blur-lg opacity-70 w-[110%] h-[110%]"
+    <div
+      className="relative z-10 mb-6"
+      style={{ width: orbControls.orbSize, height: orbControls.orbSize }}
+    >
+      {/* Orb and white background */}
+      <div className="absolute inset-0" style={{ zIndex: 0 }}>
+        {/* Blurred white background for soft edges */}
+        <div className="absolute inset-[-5%] rounded-full bg-white blur-lg opacity-70 w-[110%] h-[110%]" />
+        {/* Orb clipped to circle */}
+        <div className="absolute inset-0 overflow-hidden rounded-full">
+          <OrbOriginal
+            hue={orbControls.hue}
+            hoverIntensity={orbControls.hoverIntensity}
+            rotateOnHover={orbControls.rotateOnHover}
+            forceHoverState={orbControls.forceHoverState}
+            backgroundColor={orbControls.backgroundColor}
+            animationSpeed={orbControls.animationSpeed}
+            innerRadius={orbControls.innerRadius}
+            noiseScale={orbControls.noiseScale}
+            rotationSpeed={orbControls.rotationSpeed}
+            color1={orbControls.color1}
+            color2={orbControls.color2}
+            color3={orbControls.color3}
           />
-          {/* Orb clipped to circle */}
-          <div className="absolute inset-0 overflow-hidden rounded-full">
-            <OrbOriginal
-              hue={orbControls.hue}
-              hoverIntensity={orbControls.hoverIntensity}
-              rotateOnHover={orbControls.rotateOnHover}
-              forceHoverState={orbControls.forceHoverState}
-              backgroundColor={orbControls.backgroundColor}
-              animationSpeed={orbControls.animationSpeed}
-              innerRadius={orbControls.innerRadius}
-              noiseScale={orbControls.noiseScale}
-              rotationSpeed={orbControls.rotationSpeed}
-              color1={orbControls.color1}
-              color2={orbControls.color2}
-              color3={orbControls.color3}
-            />
-          </div>
         </div>
-        {/* Stars - can overflow during exit */}
-        <StarsCanvas
-          isExiting={isExiting}
-          globalScale={starsControls.globalScale}
-          bobAmplitudeMultiplier={starsControls.bobAmplitudeMultiplier}
-          bobSpeedMultiplier={starsControls.bobSpeedMultiplier}
-          rotationSpeedMultiplier={starsControls.rotationSpeedMultiplier}
-          tiltAngle={starsControls.tiltAngle}
-          pulseIntensity={starsControls.pulseIntensity}
-          ambientLightIntensity={starsControls.ambientLightIntensity}
-          directionalLightIntensity={starsControls.directionalLightIntensity}
-        />
       </div>
-
-      {/* Text content */}
-      <div className="flex flex-col items-center gap-2 z-10">
-        <h1
-          className={`text-[46px] font-extrabold text-[#1a1a1a] leading-[72px] text-center opacity-0 scale-[0.8] animate-text-appear ${
-            isExiting ? 'animate-text-fade-out' : ''
-          }`}
-          style={{ animationDelay: isExiting ? '0s' : '0.8s' }}
-        >
-          Welcome to Experts Studio
-        </h1>
-        <p
-          className={`text-lg font-semibold text-[#666] leading-[21.6px] text-center opacity-0 scale-[0.8] animate-text-appear ${
-            isExiting ? 'animate-text-fade-out' : ''
-          }`}
-          style={{ animationDelay: isExiting ? '0.1s' : '1.1s' }}
-        >
-          Build something Teachable
-        </p>
-      </div>
+      {/* Stars */}
+      <StarsCanvas
+        isExiting={false}
+        globalScale={starsControls.globalScale}
+        bobAmplitudeMultiplier={starsControls.bobAmplitudeMultiplier}
+        bobSpeedMultiplier={starsControls.bobSpeedMultiplier}
+        rotationSpeedMultiplier={starsControls.rotationSpeedMultiplier}
+        tiltAngle={starsControls.tiltAngle}
+        pulseIntensity={starsControls.pulseIntensity}
+        ambientLightIntensity={starsControls.ambientLightIntensity}
+        directionalLightIntensity={starsControls.directionalLightIntensity}
+      />
     </div>
   );
 }

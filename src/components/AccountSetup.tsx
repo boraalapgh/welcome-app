@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useUserType } from '../context/UserTypeContext';
+import { useTransitions } from '../context/TransitionContext';
+import { persistedSlideValues } from '../stores/levaStores';
 import { type SetupStep as ConfigSetupStep } from '../config/onboarding-content';
 
 interface AccountSetupProps {
@@ -18,6 +20,14 @@ const configToComponentStep: Record<ConfigSetupStep, SetupStep> = {
 
 export function AccountSetup({ onComplete }: AccountSetupProps) {
   const { config } = useUserType();
+  const { pageExitDuration, pageScaleFrom, getPageTransition } = useTransitions();
+
+  // Get slide controls (shared with OnboardingSlides via localStorage)
+  const p = persistedSlideValues as Record<string, unknown> | null;
+  const stepDuration = (p?.slideDuration as number) ?? 500;
+  const stepEasing = (p?.slideEasing as string) ?? 'ease-out';
+  const stepTranslateDistance = (p?.stepTranslateDistance as number) ?? 16;
+  const stepScaleFrom = (p?.stepScaleFrom as number) ?? 1;
 
   // Build dynamic step order based on user type config
   const stepOrder = useMemo<SetupStep[]>(() => {
@@ -88,11 +98,11 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       setTimeout(() => {
         setCurrentStep(stepOrder[currentIndex + 1]);
         setIsStepTransitioning(false);
-      }, 200);
+      }, stepDuration);
     } else {
       // Last step - complete the setup
       setIsExiting(true);
-      setTimeout(onComplete, 300);
+      setTimeout(onComplete, pageExitDuration);
     }
   };
 
@@ -104,7 +114,7 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       setTimeout(() => {
         setCurrentStep(stepOrder[currentIndex - 1]);
         setIsStepTransitioning(false);
-      }, 200);
+      }, stepDuration);
     }
   };
 
@@ -144,19 +154,25 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
 
   return (
     <div
-      className={`relative z-10 w-full min-h-full flex items-center justify-center p-4 sm:p-6 md:p-16 transition-all duration-300 ease-out ${
-        !isMounted || isExiting ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
-      }`}
+      className="relative z-10 w-full min-h-full flex items-center justify-center p-4 sm:p-6 md:p-16"
+      style={{
+        transition: getPageTransition(),
+        opacity: !isMounted || isExiting ? 0 : 1,
+        transform: !isMounted || isExiting ? `scale(${pageScaleFrom})` : 'scale(1)',
+      }}
     >
       {/* Main Card - min-height ensures consistent size across steps */}
       <div className="bg-white border border-[#e6e6e6] rounded-3xl w-full max-w-[720px] min-h-[520px] sm:min-h-[690px] p-6 sm:p-10 md:p-16 flex flex-col gap-6 shadow-sm">
         {/* Step Content with Transition */}
         <div
-          className={`flex flex-col flex-1 gap-6 transition-all duration-200 ease-out ${
-            isStepTransitioning
-              ? `opacity-0 ${transitionDirection === 'next' ? '-translate-x-4' : 'translate-x-4'}`
-              : 'opacity-100 translate-x-0'
-          }`}
+          className="flex flex-col flex-1 gap-6"
+          style={{
+            transition: `all ${stepDuration}ms ${stepEasing}`,
+            opacity: isStepTransitioning ? 0 : 1,
+            transform: isStepTransitioning
+              ? `translateX(${transitionDirection === 'next' ? -stepTranslateDistance : stepTranslateDistance}px) scale(${stepScaleFrom})`
+              : 'translateX(0) scale(1)',
+          }}
         >
         {/* Step 1: Legal Terms */}
         {currentStep === 'legal' && (

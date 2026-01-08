@@ -8,6 +8,14 @@ interface OrbOriginalProps {
   rotateOnHover?: boolean;
   forceHoverState?: boolean;
   backgroundColor?: string;
+  // New advanced controls
+  animationSpeed?: number;
+  innerRadius?: number;
+  noiseScale?: number;
+  rotationSpeed?: number;
+  color1?: string;
+  color2?: string;
+  color3?: string;
 }
 
 export default function OrbOriginal({
@@ -15,7 +23,15 @@ export default function OrbOriginal({
   hoverIntensity = 0.2,
   rotateOnHover = true,
   forceHoverState = false,
-  backgroundColor = '#000000'
+  backgroundColor = '#000000',
+  // New advanced controls with defaults matching original shader
+  animationSpeed = 1.0,
+  innerRadius = 0.6,
+  noiseScale = 0.65,
+  rotationSpeed = 0.3,
+  color1 = '#9c43fe',  // vec3(0.611765, 0.262745, 0.996078)
+  color2 = '#4cc2e9',  // vec3(0.298039, 0.760784, 0.913725)
+  color3 = '#101499',  // vec3(0.062745, 0.078431, 0.600000)
 }: OrbOriginalProps) {
   const ctnDom = useRef<HTMLDivElement>(null);
 
@@ -40,6 +56,12 @@ export default function OrbOriginal({
     uniform float rot;
     uniform float hoverIntensity;
     uniform vec3 backgroundColor;
+    uniform float animSpeed;
+    uniform float uInnerRadius;
+    uniform float uNoiseScale;
+    uniform vec3 uColor1;
+    uniform vec3 uColor2;
+    uniform vec3 uColor3;
     varying vec2 vUv;
 
     vec3 rgb2yiq(vec3 c) {
@@ -109,12 +131,6 @@ export default function OrbOriginal({
       return vec4(colorIn.rgb / (a + 1e-5), a);
     }
 
-    const vec3 baseColor1 = vec3(0.611765, 0.262745, 0.996078);
-    const vec3 baseColor2 = vec3(0.298039, 0.760784, 0.913725);
-    const vec3 baseColor3 = vec3(0.062745, 0.078431, 0.600000);
-    const float innerRadius = 0.6;
-    const float noiseScale = 0.65;
-
     float light1(float intensity, float attenuation, float dist) {
       return intensity / (1.0 + dist * attenuation);
     }
@@ -122,10 +138,10 @@ export default function OrbOriginal({
       return intensity / (1.0 + dist * dist * attenuation);
     }
 
-    vec4 draw(vec2 uv) {
-      vec3 color1 = adjustHue(baseColor1, hue);
-      vec3 color2 = adjustHue(baseColor2, hue);
-      vec3 color3 = adjustHue(baseColor3, hue);
+    vec4 draw(vec2 uv, float time) {
+      vec3 color1 = adjustHue(uColor1, hue);
+      vec3 color2 = adjustHue(uColor2, hue);
+      vec3 color3 = adjustHue(uColor3, hue);
 
       float ang = atan(uv.y, uv.x);
       float len = length(uv);
@@ -133,24 +149,24 @@ export default function OrbOriginal({
 
       float bgLuminance = dot(backgroundColor, vec3(0.299, 0.587, 0.114));
 
-      float n0 = snoise3(vec3(uv * noiseScale, iTime * 0.5)) * 0.5 + 0.5;
-      float r0 = mix(mix(innerRadius, 1.0, 0.4), mix(innerRadius, 1.0, 0.6), n0);
+      float n0 = snoise3(vec3(uv * uNoiseScale, time * 0.5)) * 0.5 + 0.5;
+      float r0 = mix(mix(uInnerRadius, 1.0, 0.4), mix(uInnerRadius, 1.0, 0.6), n0);
       float d0 = distance(uv, (r0 * invLen) * uv);
       float v0 = light1(1.0, 10.0, d0);
 
       v0 *= smoothstep(r0 * 1.05, r0, len);
       float innerFade = smoothstep(r0 * 0.8, r0 * 0.95, len);
       v0 *= mix(innerFade, 1.0, bgLuminance * 0.7);
-      float cl = cos(ang + iTime * 2.0) * 0.5 + 0.5;
+      float cl = cos(ang + time * 2.0) * 0.5 + 0.5;
 
-      float a = iTime * -1.0;
+      float a = time * -1.0;
       vec2 pos = vec2(cos(a), sin(a)) * r0;
       float d = distance(uv, pos);
       float v1 = light2(1.5, 5.0, d);
       v1 *= light1(1.0, 50.0, d0);
 
-      float v2 = smoothstep(1.0, mix(innerRadius, 1.0, n0 * 0.5), len);
-      float v3 = smoothstep(innerRadius, mix(innerRadius, 1.0, 0.5), len);
+      float v2 = smoothstep(1.0, mix(uInnerRadius, 1.0, n0 * 0.5), len);
+      float v3 = smoothstep(uInnerRadius, mix(uInnerRadius, 1.0, 0.5), len);
 
       vec3 colBase = mix(color1, color2, cl);
       float fadeAmount = mix(1.0, 0.1, bgLuminance);
@@ -179,10 +195,11 @@ export default function OrbOriginal({
       float c = cos(angle);
       uv = vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
 
-      uv.x += hover * hoverIntensity * 0.1 * sin(uv.y * 10.0 + iTime);
-      uv.y += hover * hoverIntensity * 0.1 * sin(uv.x * 10.0 + iTime);
+      float time = iTime * animSpeed;
+      uv.x += hover * hoverIntensity * 0.1 * sin(uv.y * 10.0 + time);
+      uv.y += hover * hoverIntensity * 0.1 * sin(uv.x * 10.0 + time);
 
-      return draw(uv);
+      return draw(uv, time);
     }
 
     void main() {
@@ -214,7 +231,13 @@ export default function OrbOriginal({
         hover: { value: 0 },
         rot: { value: 0 },
         hoverIntensity: { value: hoverIntensity },
-        backgroundColor: { value: hexToVec3(backgroundColor) }
+        backgroundColor: { value: hexToVec3(backgroundColor) },
+        animSpeed: { value: animationSpeed },
+        uInnerRadius: { value: innerRadius },
+        uNoiseScale: { value: noiseScale },
+        uColor1: { value: hexToVec3(color1) },
+        uColor2: { value: hexToVec3(color2) },
+        uColor3: { value: hexToVec3(color3) },
       }
     });
 
@@ -236,7 +259,6 @@ export default function OrbOriginal({
     let targetHover = 0;
     let lastTime = 0;
     let currentRot = 0;
-    const rotationSpeed = 0.3;
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect();
@@ -273,6 +295,12 @@ export default function OrbOriginal({
       program.uniforms.hue.value = hue;
       program.uniforms.hoverIntensity.value = hoverIntensity;
       program.uniforms.backgroundColor.value = hexToVec3(backgroundColor);
+      program.uniforms.animSpeed.value = animationSpeed;
+      program.uniforms.uInnerRadius.value = innerRadius;
+      program.uniforms.uNoiseScale.value = noiseScale;
+      program.uniforms.uColor1.value = hexToVec3(color1);
+      program.uniforms.uColor2.value = hexToVec3(color2);
+      program.uniforms.uColor3.value = hexToVec3(color3);
 
       const effectiveHover = forceHoverState ? 1 : targetHover;
       program.uniforms.hover.value += (effectiveHover - program.uniforms.hover.value) * 0.1;
@@ -295,7 +323,7 @@ export default function OrbOriginal({
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hue, hoverIntensity, rotateOnHover, forceHoverState, backgroundColor]);
+  }, [hue, hoverIntensity, rotateOnHover, forceHoverState, backgroundColor, animationSpeed, innerRadius, noiseScale, rotationSpeed, color1, color2, color3]);
 
   return <div ref={ctnDom} className="orb-container" />;
 }

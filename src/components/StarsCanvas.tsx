@@ -5,18 +5,27 @@ import starGlbUrl from '../assets/star.glb?url';
 
 interface StarsCanvasProps {
   isExiting: boolean;
+  // Global controls
+  globalScale?: number;
+  bobAmplitudeMultiplier?: number;
+  bobSpeedMultiplier?: number;
+  rotationSpeedMultiplier?: number;
+  tiltAngle?: number;
+  pulseIntensity?: number;
+  ambientLightIntensity?: number;
+  directionalLightIntensity?: number;
 }
 
-// Star configuration - 3 stars with Y-axis rotation and vertical bobbing
-const starConfigs = [
+// Default star configuration - 3 stars with Y-axis rotation and vertical bobbing
+const defaultStarConfigs = [
   {
     // Large star (primary) - positioned right
     size: 0.7,
-    bobAmplitude: 0.03, // How much it moves up/down
-    bobSpeed: 0.8,      // Speed of vertical movement
-    bobPhase: 0,        // Phase offset for variation
+    bobAmplitude: 0.03,
+    bobSpeed: 0.8,
+    bobPhase: 0,
     basePosition: { x: 0.22, y: -0.05 },
-    rotationSpeed: 0.4, // Y-axis rotation speed
+    rotationSpeed: 0.4,
     isPrimary: true,
   },
   {
@@ -40,9 +49,6 @@ const starConfigs = [
     isPrimary: false,
   },
 ];
-
-// 30 degrees in radians - tilt angle from surface
-const TILT_ANGLE = (30 * Math.PI) / 180;
 
 async function loadStarModel(): Promise<THREE.Group> {
   const loader = new GLTFLoader();
@@ -91,7 +97,17 @@ async function loadStarModel(): Promise<THREE.Group> {
   });
 }
 
-export function StarsCanvas({ isExiting }: StarsCanvasProps) {
+export function StarsCanvas({
+  isExiting,
+  globalScale = 1.0,
+  bobAmplitudeMultiplier = 1.0,
+  bobSpeedMultiplier = 1.0,
+  rotationSpeedMultiplier = 1.0,
+  tiltAngle = 30,
+  pulseIntensity = 0.04,
+  ambientLightIntensity = 0.6,
+  directionalLightIntensity = 0.8,
+}: StarsCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -100,6 +116,40 @@ export function StarsCanvas({ isExiting }: StarsCanvasProps) {
   const exitProgressRef = useRef(0);
   const animationIdRef = useRef<number>(0);
   const isExitingRef = useRef(isExiting);
+  const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
+  const directionalLightRef = useRef<THREE.DirectionalLight | null>(null);
+
+  // Store control values in refs for animation loop access
+  const controlsRef = useRef({
+    globalScale,
+    bobAmplitudeMultiplier,
+    bobSpeedMultiplier,
+    rotationSpeedMultiplier,
+    tiltAngle,
+    pulseIntensity,
+  });
+
+  // Update refs when props change
+  useEffect(() => {
+    controlsRef.current = {
+      globalScale,
+      bobAmplitudeMultiplier,
+      bobSpeedMultiplier,
+      rotationSpeedMultiplier,
+      tiltAngle,
+      pulseIntensity,
+    };
+  }, [globalScale, bobAmplitudeMultiplier, bobSpeedMultiplier, rotationSpeedMultiplier, tiltAngle, pulseIntensity]);
+
+  // Update lights when intensity props change
+  useEffect(() => {
+    if (ambientLightRef.current) {
+      ambientLightRef.current.intensity = ambientLightIntensity;
+    }
+    if (directionalLightRef.current) {
+      directionalLightRef.current.intensity = directionalLightIntensity;
+    }
+  }, [ambientLightIntensity, directionalLightIntensity]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -129,12 +179,14 @@ export function StarsCanvas({ isExiting }: StarsCanvasProps) {
     rendererRef.current = renderer;
 
     // Add lighting for 3D model
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, ambientLightIntensity);
     scene.add(ambientLight);
+    ambientLightRef.current = ambientLight;
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, directionalLightIntensity);
     directionalLight.position.set(1, 1, 2);
     scene.add(directionalLight);
+    directionalLightRef.current = directionalLight;
 
     // Create a group for the entire system
     const systemGroup = new THREE.Group();
@@ -150,13 +202,15 @@ export function StarsCanvas({ isExiting }: StarsCanvasProps) {
         if (cleanedUp) return;
 
         const stars: THREE.Group[] = [];
-        starConfigs.forEach((config, index) => {
+        const tiltRad = (controlsRef.current.tiltAngle * Math.PI) / 180;
+
+        defaultStarConfigs.forEach((config, index) => {
           // Create a container for position and tilt
           const container = new THREE.Group();
           container.position.set(config.basePosition.x, config.basePosition.y, 0);
 
-          // Apply 30-degree tilt on X-axis (tilted toward viewer)
-          container.rotation.x = TILT_ANGLE;
+          // Apply tilt on X-axis (tilted toward viewer)
+          container.rotation.x = tiltRad;
 
           // Create a new pivot group for this star
           const pivot = new THREE.Group();
@@ -201,22 +255,27 @@ export function StarsCanvas({ isExiting }: StarsCanvasProps) {
       animationIdRef.current = requestAnimationFrame(animate);
 
       const time = Date.now() * 0.001;
+      const controls = controlsRef.current;
 
       starsRef.current.forEach((container) => {
         const config = container.userData;
         const starMesh = config.starMesh as THREE.Group;
 
+        // Update tilt angle dynamically
+        const tiltRad = (controls.tiltAngle * Math.PI) / 180;
+        container.rotation.x = tiltRad;
+
         if (!isExitingRef.current) {
           // Y-axis rotation on the inner star (spinning around its own center)
-          starMesh.rotation.y += config.rotationSpeed * 0.016; // ~60fps normalized
+          starMesh.rotation.y += config.rotationSpeed * controls.rotationSpeedMultiplier * 0.016;
 
           // Container handles position - vertical bobbing motion
-          const bobOffset = Math.sin(time * config.bobSpeed + config.bobPhase) * config.bobAmplitude;
+          const bobOffset = Math.sin(time * config.bobSpeed * controls.bobSpeedMultiplier + config.bobPhase) * config.bobAmplitude * controls.bobAmplitudeMultiplier;
           container.position.y = config.baseY + bobOffset;
 
           // Subtle breathing/pulse effect on the inner star
-          const pulse = 1 + Math.sin(time * 2 + config.index * 1.5) * 0.04;
-          starMesh.scale.setScalar(config.size * pulse);
+          const pulse = 1 + Math.sin(time * 2 + config.index * 1.5) * controls.pulseIntensity;
+          starMesh.scale.setScalar(config.size * controls.globalScale * pulse);
         } else {
           // Exit animation - just fade out (no scaling to avoid canvas clipping)
           exitProgressRef.current += 0.008;
@@ -226,15 +285,15 @@ export function StarsCanvas({ isExiting }: StarsCanvasProps) {
           const easeOut = 1 - Math.pow(1 - progress, 3);
 
           // Keep current scale (no growth)
-          const pulse = 1 + Math.sin(time * 2 + config.index * 1.5) * 0.04;
-          starMesh.scale.setScalar(config.size * pulse);
+          const pulse = 1 + Math.sin(time * 2 + config.index * 1.5) * controls.pulseIntensity;
+          starMesh.scale.setScalar(config.size * controls.globalScale * pulse);
 
           // Keep bobbing motion
-          const bobOffset = Math.sin(time * config.bobSpeed + config.bobPhase) * config.bobAmplitude;
+          const bobOffset = Math.sin(time * config.bobSpeed * controls.bobSpeedMultiplier + config.bobPhase) * config.bobAmplitude * controls.bobAmplitudeMultiplier;
           container.position.y = config.baseY + bobOffset;
 
           // Keep spinning
-          starMesh.rotation.y += config.rotationSpeed * 0.016;
+          starMesh.rotation.y += config.rotationSpeed * controls.rotationSpeedMultiplier * 0.016;
 
           // Fade out materials
           starMesh.traverse((child) => {

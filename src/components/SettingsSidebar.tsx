@@ -1,17 +1,49 @@
 import { useState } from 'react';
 import { useUserType } from '../context/UserTypeContext';
+import { useDebugControls, type DebugElement } from '../context/DebugControlsContext';
 import { userTypeIds, onboardingContent, type UserTypeId } from '../config/onboarding-content';
 
+type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete';
+
+const phases: Phase[] = ['welcome', 'onboarding', 'setup', 'complete'];
+
 interface SettingsSidebarProps {
-  currentPhase: string;
+  currentPhase: Phase;
+  onPhaseChange?: (phase: Phase) => void;
 }
 
-export function SettingsSidebar({ currentPhase }: SettingsSidebarProps) {
+const debugElements: { id: DebugElement; label: string; description: string }[] = [
+  { id: 'logo', label: 'Logo Controls', description: 'Leva controls for orb (welcome & complete)' },
+  { id: 'transitions', label: 'Page Transitions', description: 'Duration & easing for phase changes' },
+  { id: 'slides', label: 'Slide Transitions', description: 'Onboarding carousel animation settings' },
+  { id: 'welcomePauseAuto', label: 'Pause Auto-Advance', description: 'Stop welcome from auto-transitioning' },
+  { id: 'particles', label: 'Celebration Particles', description: 'Confetti effect on complete phase' },
+];
+
+export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(true);
   const { userTypeId, setUserType, resetFlow, config } = useUserType();
+  const { isEnabled, toggle } = useDebugControls();
 
   const handleUserTypeChange = (id: UserTypeId) => {
     setUserType(id);
+  };
+
+  const currentPhaseIndex = phases.indexOf(currentPhase);
+  const canGoPrev = currentPhaseIndex > 0;
+  const canGoNext = currentPhaseIndex < phases.length - 1;
+
+  const handlePrevPhase = () => {
+    if (canGoPrev && onPhaseChange) {
+      onPhaseChange(phases[currentPhaseIndex - 1]);
+    }
+  };
+
+  const handleNextPhase = () => {
+    if (canGoNext && onPhaseChange) {
+      onPhaseChange(phases[currentPhaseIndex + 1]);
+    }
   };
 
   return (
@@ -56,10 +88,43 @@ export function SettingsSidebar({ currentPhase }: SettingsSidebarProps) {
             <h2 className="text-lg font-bold text-gray-900">Settings</h2>
           </div>
 
-          {/* Current State */}
+          {/* Current Phase with Navigation */}
           <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Current Phase</p>
-            <p className="text-sm font-medium text-gray-900 capitalize">{currentPhase}</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Current Phase</p>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handlePrevPhase}
+                disabled={!canGoPrev || !onPhaseChange}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                  canGoPrev && onPhaseChange
+                    ? 'bg-white border border-gray-200 hover:bg-gray-100 text-gray-700'
+                    : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                }`}
+                aria-label="Previous phase"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-900 capitalize">{currentPhase}</p>
+                <p className="text-xs text-gray-400">{currentPhaseIndex + 1} / {phases.length}</p>
+              </div>
+              <button
+                onClick={handleNextPhase}
+                disabled={!canGoNext || !onPhaseChange}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                  canGoNext && onPhaseChange
+                    ? 'bg-white border border-gray-200 hover:bg-gray-100 text-gray-700'
+                    : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                }`}
+                aria-label="Next phase"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* User Type Selection */}
@@ -115,6 +180,65 @@ export function SettingsSidebar({ currentPhase }: SettingsSidebarProps) {
                 </span>
               ))}
             </div>
+          </div>
+
+          {/* Debug Elements Dropdown */}
+          <div className="mb-6">
+            <button
+              onClick={() => setDebugOpen(!debugOpen)}
+              className="w-full flex items-center justify-between text-xs text-gray-500 uppercase tracking-wider mb-3 hover:text-gray-700 transition-colors"
+            >
+              <span>Debug Elements</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className={`transition-transform ${debugOpen ? 'rotate-180' : ''}`}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {debugOpen && (
+              <div className="space-y-2">
+                {debugElements.map((element) => {
+                  const enabled = isEnabled(element.id);
+                  return (
+                    <button
+                      key={element.id}
+                      onClick={() => toggle(element.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${
+                        enabled
+                          ? 'border-[#5a14bd] bg-[#5a14bd]/5'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className={`text-sm font-medium ${enabled ? 'text-[#5a14bd]' : 'text-gray-900'}`}>
+                            {element.label}
+                          </p>
+                          <p className="text-xs text-gray-500">{element.description}</p>
+                        </div>
+                        <div
+                          className={`w-8 h-5 rounded-full transition-colors relative ${
+                            enabled ? 'bg-[#5a14bd]' : 'bg-gray-300'
+                          }`}
+                        >
+                          <div
+                            className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                              enabled ? 'translate-x-3.5' : 'translate-x-0.5'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Spacer */}
