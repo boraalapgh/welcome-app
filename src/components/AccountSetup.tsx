@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useControls, folder, button } from 'leva';
+import { Image } from 'lucide-react';
 import { useUserType } from '../context/UserTypeContext';
-import { useTransitions } from '../context/TransitionContext';
-import { persistedSlideValues } from '../stores/levaStores';
+import { useTransitions, easingOptions, type EasingType } from '../context/TransitionContext';
+import { useLevaStores } from './LevaControls';
+import {
+  persistedSlideValues,
+  persistSlideValues,
+  clearSlideValues,
+} from '../stores/levaStores';
 import { type SetupStep as ConfigSetupStep } from '../config/onboarding-content';
 
 interface AccountSetupProps {
@@ -21,13 +28,132 @@ const configToComponentStep: Record<ConfigSetupStep, SetupStep> = {
 export function AccountSetup({ onComplete }: AccountSetupProps) {
   const { config } = useUserType();
   const { pageExitDuration, pageScaleFrom, getPageTransition } = useTransitions();
+  const { slidesStore } = useLevaStores();
 
-  // Get slide controls (shared with OnboardingSlides via localStorage)
+  // Get persisted values or use defaults
   const p = persistedSlideValues as Record<string, unknown> | null;
-  const stepDuration = (p?.slideDuration as number) ?? 500;
-  const stepEasing = (p?.slideEasing as string) ?? 'ease-out';
-  const stepTranslateDistance = (p?.stepTranslateDistance as number) ?? 16;
-  const stepScaleFrom = (p?.stepScaleFrom as number) ?? 1;
+
+  // Build store option - only include if store is available
+  const storeOption = slidesStore ? { store: slidesStore } : {};
+
+  // Slide transition controls (same as OnboardingSlides - shared store)
+  const slideControls = useControls('Slide Carousel', {
+    timing: folder({
+      slideDuration: {
+        value: (p?.slideDuration as number) ?? 500,
+        min: 100,
+        max: 1500,
+        step: 50,
+        label: 'Duration (ms)',
+      },
+      slideEasing: {
+        value: (p?.slideEasing as EasingType) ?? 'ease-out',
+        options: easingOptions,
+        label: 'Easing',
+      },
+    }),
+    inactive: folder({
+      slideScaleInactive: {
+        value: (p?.slideScaleInactive as number) ?? 0.9,
+        min: 0.5,
+        max: 1,
+        step: 0.05,
+        label: 'Inactive Scale',
+      },
+      slideOpacityInactive: {
+        value: (p?.slideOpacityInactive as number) ?? 0.2,
+        min: 0,
+        max: 1,
+        step: 0.1,
+        label: 'Inactive Opacity',
+      },
+    }),
+  }, storeOption);
+
+  // Card animation controls
+  const cardControls = useControls('Card Animation', {
+    cardTransitionDuration: {
+      value: (p?.cardTransitionDuration as number) ?? 500,
+      min: 100,
+      max: 1500,
+      step: 50,
+      label: 'Duration (ms)',
+    },
+    cardEasing: {
+      value: (p?.cardEasing as EasingType) ?? 'ease-out',
+      options: easingOptions,
+      label: 'Easing',
+    },
+  }, storeOption);
+
+  // Step animation controls (shared with OnboardingSlides)
+  const stepControls = useControls('Step Animation', {
+    stepTranslateDistance: {
+      value: (p?.stepTranslateDistance as number) ?? 16,
+      min: 0,
+      max: 100,
+      step: 4,
+      label: 'Translate (px)',
+    },
+    stepScaleFrom: {
+      value: (p?.stepScaleFrom as number) ?? 1,
+      min: 0.8,
+      max: 1,
+      step: 0.02,
+      label: 'Scale From',
+    },
+  }, storeOption);
+
+  // Actions buttons
+  useControls('Actions', {
+    'Reset Slides': button(() => {
+      clearSlideValues();
+      window.location.reload();
+    }),
+    'Copy Values': button(() => {
+      // Read current values from store to avoid stale closure
+      // getData() returns full metadata, extract .value from each
+      const storeData = slidesStore?.getData() as Record<string, { value: unknown }> | undefined;
+      const getValue = (key: string, fallback: unknown) => storeData?.[key]?.value ?? fallback;
+
+      const exportData = {
+        slideTransitions: {
+          carousel: {
+            duration: getValue('Slide Carousel.timing.slideDuration', slideControls.slideDuration),
+            easing: getValue('Slide Carousel.timing.slideEasing', slideControls.slideEasing),
+            scaleInactive: getValue('Slide Carousel.inactive.slideScaleInactive', slideControls.slideScaleInactive),
+            opacityInactive: getValue('Slide Carousel.inactive.slideOpacityInactive', slideControls.slideOpacityInactive),
+          },
+          card: {
+            duration: getValue('Card Animation.cardTransitionDuration', cardControls.cardTransitionDuration),
+            easing: getValue('Card Animation.cardEasing', cardControls.cardEasing),
+          },
+          step: {
+            translateDistance: getValue('Step Animation.stepTranslateDistance', stepControls.stepTranslateDistance),
+            scaleFrom: getValue('Step Animation.stepScaleFrom', stepControls.stepScaleFrom),
+          },
+        },
+      };
+      navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
+      console.log('Exported slide transition values:', exportData);
+      alert('Slide transition values copied to clipboard! Check console for details.');
+    }),
+  }, storeOption);
+
+  // Persist values on change
+  useEffect(() => {
+    const values = {
+      slideDuration: slideControls.slideDuration,
+      slideEasing: slideControls.slideEasing,
+      slideScaleInactive: slideControls.slideScaleInactive,
+      slideOpacityInactive: slideControls.slideOpacityInactive,
+      cardTransitionDuration: cardControls.cardTransitionDuration,
+      cardEasing: cardControls.cardEasing,
+      stepTranslateDistance: stepControls.stepTranslateDistance,
+      stepScaleFrom: stepControls.stepScaleFrom,
+    };
+    persistSlideValues(values);
+  }, [slideControls, cardControls, stepControls]);
 
   // Build dynamic step order based on user type config
   const stepOrder = useMemo<SetupStep[]>(() => {
@@ -61,7 +187,7 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
   const [role, setRole] = useState('');
   const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [organizationName, setOrganizationName] = useState('');
+  const [organizationName, setOrganizationName] = useState('Acme Corp');
   const [organizationLogoPreview, setOrganizationLogoPreview] = useState<string | null>(null);
   const [inviteRows, setInviteRows] = useState<Array<{ email: string; role: string }>>(
     Array(5).fill(null).map(() => ({ email: '', role: '' }))
@@ -98,7 +224,7 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       setTimeout(() => {
         setCurrentStep(stepOrder[currentIndex + 1]);
         setIsStepTransitioning(false);
-      }, stepDuration);
+      }, slideControls.slideDuration);
     } else {
       // Last step - complete the setup
       setIsExiting(true);
@@ -114,7 +240,7 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
       setTimeout(() => {
         setCurrentStep(stepOrder[currentIndex - 1]);
         setIsStepTransitioning(false);
-      }, stepDuration);
+      }, slideControls.slideDuration);
     }
   };
 
@@ -167,10 +293,10 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
         <div
           className="flex flex-col flex-1 gap-6"
           style={{
-            transition: `all ${stepDuration}ms ${stepEasing}`,
+            transition: `all ${slideControls.slideDuration}ms ${slideControls.slideEasing}`,
             opacity: isStepTransitioning ? 0 : 1,
             transform: isStepTransitioning
-              ? `translateX(${transitionDirection === 'next' ? -stepTranslateDistance : stepTranslateDistance}px) scale(${stepScaleFrom})`
+              ? `translateX(${transitionDirection === 'next' ? -stepControls.stepTranslateDistance : stepControls.stepTranslateDistance}px) scale(${stepControls.stepScaleFrom})`
               : 'translateX(0) scale(1)',
           }}
         >
@@ -283,38 +409,7 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 48 48"
-                      fill="none"
-                      className="text-[#1a1a1a]"
-                    >
-                      <path
-                        d="M24 20C26.2091 20 28 18.2091 28 16C28 13.7909 26.2091 12 24 12C21.7909 12 20 13.7909 20 16C20 18.2091 21.7909 20 24 20Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M24 4C21.3478 4 18.8043 5.05357 16.9289 6.92893C15.0536 8.8043 14 11.3478 14 14V16C14 18.6522 15.0536 21.1957 16.9289 23.0711C18.8043 24.9464 21.3478 26 24 26C26.6522 26 29.1957 24.9464 31.0711 23.0711C32.9464 21.1957 34 18.6522 34 16V14C34 11.3478 32.9464 8.8043 31.0711 6.92893C29.1957 5.05357 26.6522 4 24 4Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <rect
-                        x="18"
-                        y="28"
-                        width="12"
-                        height="8"
-                        rx="2"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                      <circle cx="24" cy="32" r="1.5" fill="currentColor" />
-                    </svg>
+                    <Image size={24} strokeWidth={1.5} className="text-[#1a1a1a]" />
                   )}
                 </div>
                 {/* Upload Button */}
@@ -418,13 +513,13 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
               <h1 className="text-xl sm:text-2xl md:text-[25px] font-extrabold text-[#1a1a1a] leading-[1.2]">
                 Organization Setup
               </h1>
-              <p className="text-[#4d4d4d] text-sm sm:text-base">
+              <p className="text-[#4d4d4d] text-sm sm:text-base leading-6">
                 Let's complete the setup
               </p>
             </div>
 
-            {/* Company Logo Upload + Display Name */}
-            <div className="flex items-center gap-6 px-2 py-2">
+            {/* Company Logo Upload Section */}
+            <div className="flex items-start gap-6 px-2 py-2">
               {/* Logo Upload */}
               <div className="relative w-[80px] flex flex-col items-center shrink-0">
                 {/* Logo Circle */}
@@ -436,24 +531,14 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 48 48"
-                      fill="none"
-                      className="text-[#1a1a1a]"
-                    >
-                      <rect x="14" y="14" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="19" cy="20" r="2" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M14 26L20 22L24 26L30 20L34 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <Image size={24} strokeWidth={1.5} className="text-[#1a1a1a]" />
                   )}
                 </div>
                 {/* Upload Button */}
                 <button
                   type="button"
                   onClick={triggerOrgLogoInput}
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#5a14bd] text-white text-sm font-medium px-3 py-1 rounded-full hover:bg-[#4a10a0] transition-colors"
+                  className="absolute top-[67px] left-[7px] bg-[#5a14bd] text-white text-sm font-medium px-2 py-1 rounded-full hover:bg-[#4a10a0] transition-colors leading-[21px]"
                 >
                   Upload
                 </button>
@@ -466,19 +551,29 @@ export function AccountSetup({ onComplete }: AccountSetupProps) {
                 />
               </div>
 
-              {/* Display Name Input */}
-              <div className="flex-1 flex flex-col gap-0.5 min-w-0 max-w-[480px]">
-                <label className="text-base font-medium text-[#1a1a1a]">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  value={organizationName}
-                  onChange={(e) => setOrganizationName(e.target.value)}
-                  placeholder="Acme Corp"
-                  className="w-full h-12 px-3 rounded-lg border border-[#1a1a1a] focus:border-[#5a14bd] focus:ring-1 focus:ring-[#5a14bd] outline-none transition-all text-base text-[#1a1a1a] placeholder:text-[#666]"
-                />
+              {/* Company Logo Text */}
+              <div className="flex flex-col gap-2 flex-1 min-w-0">
+                <h2 className="text-lg font-extrabold text-[#1a1a1a] leading-[21.6px]">
+                  Company Logo
+                </h2>
+                <p className="text-xs text-[#4d4d4d] tracking-[0.5px] leading-[18px]">
+                  Will be used in the future
+                </p>
               </div>
+            </div>
+
+            {/* Display Name Input */}
+            <div className="flex flex-col gap-0.5 w-full max-w-[480px]">
+              <label className="text-base font-medium text-[#1a1a1a] leading-6">
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={organizationName}
+                onChange={(e) => setOrganizationName(e.target.value)}
+                placeholder="Acme Corp"
+                className="w-full h-12 px-3 rounded-lg border border-[#1a1a1a] focus:border-[#5a14bd] focus:ring-1 focus:ring-[#5a14bd] outline-none transition-all text-base text-[#1a1a1a] placeholder:text-[#666]"
+              />
             </div>
           </>
         )}

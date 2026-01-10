@@ -5,6 +5,8 @@ import starGlbUrl from '../assets/star.glb?url';
 
 interface StarsCanvasProps {
   isExiting: boolean;
+  // Container size - should match orb size
+  containerSize?: number;
   // Global controls
   globalScale?: number;
   bobAmplitudeMultiplier?: number;
@@ -99,6 +101,7 @@ async function loadStarModel(): Promise<THREE.Group> {
 
 export function StarsCanvas({
   isExiting,
+  containerSize,
   globalScale = 1.0,
   bobAmplitudeMultiplier = 1.0,
   bobSpeedMultiplier = 1.0,
@@ -151,6 +154,13 @@ export function StarsCanvas({
     }
   }, [ambientLightIntensity, directionalLightIntensity]);
 
+  // Update renderer size when containerSize prop changes
+  useEffect(() => {
+    if (containerSize && rendererRef.current && canvasRef.current) {
+      rendererRef.current.setSize(containerSize, containerSize);
+    }
+  }, [containerSize]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -158,7 +168,8 @@ export function StarsCanvas({
     const container = canvas.parentElement;
     if (!container) return;
 
-    const size = container.offsetWidth;
+    // Use containerSize prop if provided, otherwise fall back to measured width
+    const size = containerSize || container.offsetWidth;
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -316,7 +327,7 @@ export function StarsCanvas({
     // Handle resize
     const handleResize = () => {
       if (!container || !renderer) return;
-      const newSize = container.offsetWidth;
+      const newSize = containerSize || container.offsetWidth;
       renderer.setSize(newSize, newSize);
     };
 

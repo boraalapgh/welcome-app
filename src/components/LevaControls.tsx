@@ -11,6 +11,7 @@ interface LevaStoresContextType {
   particlesStore: LevaStore | null;
   transitionsStore: LevaStore | null;
   slidesStore: LevaStore | null;
+  dashboardStore: LevaStore | null;
 }
 
 const LevaStoresContext = createContext<LevaStoresContextType>({
@@ -18,6 +19,7 @@ const LevaStoresContext = createContext<LevaStoresContextType>({
   particlesStore: null,
   transitionsStore: null,
   slidesStore: null,
+  dashboardStore: null,
 });
 
 export function useLevaStores() {
@@ -38,15 +40,17 @@ export function LevaControlsProvider({ children }: LevaControlsProviderProps) {
   const particlesDebug = isEnabled('particles');
   const transitionsDebug = isEnabled('transitions');
   const slidesDebug = isEnabled('slides');
+  const dashboardDebug = isEnabled('dashboard');
 
   // Create separate stores for each element type
   const logoStore = useCreateStore();
   const particlesStore = useCreateStore();
   const transitionsStore = useCreateStore();
   const slidesStore = useCreateStore();
+  const dashboardStore = useCreateStore();
 
   return (
-    <LevaStoresContext.Provider value={{ logoStore, particlesStore, transitionsStore, slidesStore }}>
+    <LevaStoresContext.Provider value={{ logoStore, particlesStore, transitionsStore, slidesStore, dashboardStore }}>
       {children}
 
       {/* Logo controls panel */}
@@ -88,6 +92,17 @@ export function LevaControlsProvider({ children }: LevaControlsProviderProps) {
         hidden={!slidesDebug}
         collapsed={false}
         titleBar={{ title: 'Slide Transition Controls' }}
+        theme={{
+          sizes: { rootWidth: '320px' },
+        }}
+      />
+
+      {/* Dashboard controls panel */}
+      <LevaPanel
+        store={dashboardStore}
+        hidden={!dashboardDebug}
+        collapsed={false}
+        titleBar={{ title: 'Dashboard Controls' }}
         theme={{
           sizes: { rootWidth: '320px' },
         }}

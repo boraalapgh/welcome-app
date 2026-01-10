@@ -1,6 +1,31 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { type UserTypeId, type UserTypeConfig, getUserTypeConfig } from '../config/onboarding-content';
 
+const STORAGE_KEY_USER_TYPE = 'user-type-selection';
+
+// Valid user type IDs for validation
+const validUserTypes: UserTypeId[] = ['UT1', 'UT2', 'UT3', 'UT4'];
+
+function loadPersistedUserType(): UserTypeId {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_USER_TYPE);
+    if (stored && validUserTypes.includes(stored as UserTypeId)) {
+      return stored as UserTypeId;
+    }
+  } catch {
+    // localStorage may not be available
+  }
+  return 'UT1';
+}
+
+function persistUserType(id: UserTypeId): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_USER_TYPE, id);
+  } catch {
+    // localStorage may not be available
+  }
+}
+
 interface UserTypeContextValue {
   userTypeId: UserTypeId;
   config: UserTypeConfig;
@@ -17,11 +42,12 @@ interface UserTypeProviderProps {
 }
 
 export function UserTypeProvider({ children, onFlowReset }: UserTypeProviderProps) {
-  const [userTypeId, setUserTypeId] = useState<UserTypeId>('UT1');
+  const [userTypeId, setUserTypeId] = useState<UserTypeId>(loadPersistedUserType);
   const [flowResetKey, setFlowResetKey] = useState(0);
 
   const setUserType = useCallback((id: UserTypeId) => {
     setUserTypeId(id);
+    persistUserType(id);
     setFlowResetKey((prev) => prev + 1);
     onFlowReset?.();
   }, [onFlowReset]);

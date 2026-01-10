@@ -99,21 +99,26 @@ export function OnboardingSlides({ onComplete }: OnboardingSlidesProps) {
       window.location.reload();
     }),
     'Copy Values': button(() => {
+      // Read current values from store to avoid stale closure
+      // getData() returns full metadata, extract .value from each
+      const storeData = slidesStore?.getData() as Record<string, { value: unknown }> | undefined;
+      const getValue = (key: string, fallback: unknown) => storeData?.[key]?.value ?? fallback;
+
       const exportData = {
         slideTransitions: {
           carousel: {
-            duration: slideControls.slideDuration,
-            easing: slideControls.slideEasing,
-            scaleInactive: slideControls.slideScaleInactive,
-            opacityInactive: slideControls.slideOpacityInactive,
+            duration: getValue('Slide Carousel.timing.slideDuration', slideControls.slideDuration),
+            easing: getValue('Slide Carousel.timing.slideEasing', slideControls.slideEasing),
+            scaleInactive: getValue('Slide Carousel.inactive.slideScaleInactive', slideControls.slideScaleInactive),
+            opacityInactive: getValue('Slide Carousel.inactive.slideOpacityInactive', slideControls.slideOpacityInactive),
           },
           card: {
-            duration: cardControls.cardTransitionDuration,
-            easing: cardControls.cardEasing,
+            duration: getValue('Card Animation.cardTransitionDuration', cardControls.cardTransitionDuration),
+            easing: getValue('Card Animation.cardEasing', cardControls.cardEasing),
           },
           step: {
-            translateDistance: stepControls.stepTranslateDistance,
-            scaleFrom: stepControls.stepScaleFrom,
+            translateDistance: getValue('Step Animation.stepTranslateDistance', stepControls.stepTranslateDistance),
+            scaleFrom: getValue('Step Animation.stepScaleFrom', stepControls.stepScaleFrom),
           },
         },
       };

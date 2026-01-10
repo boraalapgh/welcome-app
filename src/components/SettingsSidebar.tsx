@@ -4,9 +4,17 @@ import { useDebugControls, type DebugElement } from '../context/DebugControlsCon
 import { userTypeIds, onboardingContent, type UserTypeId } from '../config/onboarding-content';
 import { Switch } from '@/components/ui/switch';
 
-type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete';
+type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete' | 'dashboard';
 
-const phases: Phase[] = ['welcome', 'onboarding', 'setup', 'complete'];
+const phases: Phase[] = ['welcome', 'onboarding', 'setup', 'complete', 'dashboard'];
+
+// Routing destinations per user type (all go to 'dashboard' phase, but content differs)
+const userTypeDestinations: Record<UserTypeId, { label: string }> = {
+  UT1: { label: 'Experts Studio' },
+  UT2: { label: 'Experts Studio' },
+  UT3: { label: 'Experts Studio (Restricted)' },
+  UT4: { label: 'Learner Panel' },
+};
 
 interface SettingsSidebarProps {
   currentPhase: Phase;
@@ -17,6 +25,7 @@ const debugElements: { id: DebugElement; label: string; description: string }[] 
   { id: 'logo', label: 'Logo Controls', description: 'Leva controls for orb (welcome & complete)' },
   { id: 'transitions', label: 'Page Transitions', description: 'Duration & easing for phase changes' },
   { id: 'slides', label: 'Slide Transitions', description: 'Onboarding carousel animation settings' },
+  { id: 'dashboard', label: 'Dashboard Animation', description: 'Fade & slide-up animation settings' },
   { id: 'welcomePauseAuto', label: 'Pause Auto-Advance', description: 'Stop welcome from auto-transitioning' },
   { id: 'particles', label: 'Celebration Particles', description: 'Confetti effect on complete phase' },
 ];
@@ -151,7 +160,7 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
                           {typeConfig.label}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {typeConfig.steps.length} steps
+                          {typeConfig.steps.length} steps &rarr; {userTypeDestinations[id].label}
                         </p>
                       </div>
                       {isSelected && (

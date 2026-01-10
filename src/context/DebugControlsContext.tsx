@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-export type DebugElement = 'particles' | 'logo' | 'welcomePauseAuto' | 'transitions' | 'slides';
+export type DebugElement = 'particles' | 'logo' | 'welcomePauseAuto' | 'transitions' | 'slides' | 'dashboard';
 
 interface DebugControlsContextType {
   enabledElements: Set<DebugElement>;
