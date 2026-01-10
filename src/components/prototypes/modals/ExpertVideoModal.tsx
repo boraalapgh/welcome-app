@@ -14,7 +14,7 @@ export function ExpertVideoModal({ onClose }: ExpertVideoModalProps) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Modal content */}
-      <div className="relative bg-white rounded-2xl mx-3 p-5 w-full max-h-[90%] overflow-hidden flex flex-col shadow-xl">
+      <div className="relative bg-white rounded-2xl mx-3 p-5 w-full max-h-[90%] max-w-[640px] overflow-hidden flex flex-col shadow-xl">
         {/* Close button */}
         <button
           onClick={onClose}

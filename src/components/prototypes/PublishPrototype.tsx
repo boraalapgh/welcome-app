@@ -31,7 +31,7 @@ export function PublishPrototype() {
   };
 
   return (
-    <div className="relative w-full max-w-[640px] mx-auto h-full flex items-center justify-center">
+    <div className="relative w-full  mx-auto h-full flex items-center justify-center">
       
         {/* Dashboard screen */}
         <PublishDashboard

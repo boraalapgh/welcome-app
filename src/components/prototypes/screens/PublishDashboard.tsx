@@ -34,7 +34,7 @@ function ReviewCard({ icon, title, description, onClick, className = '' }: Revie
 
 export function PublishDashboard({ onOpenModal, onPublish }: PublishDashboardProps) {
   return (
-    <div className="flex flex-col ">
+    <div className="flex flex-col max-w-[640px] ">
       {/* Header */}
       <div className="flex items-center justify-end gap-2 px-4 py-3 border-b border-[#f2f2f2]">
         <button

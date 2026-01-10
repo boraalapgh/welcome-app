@@ -91,9 +91,9 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-6 h-full flex flex-col">
+        <div className="p-6 h-full flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-6 flex-shrink-0">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
               <span className="text-xs font-medium text-orange-600 uppercase tracking-wider">
@@ -103,6 +103,8 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
             <h2 className="text-lg font-bold text-gray-900">Settings</h2>
           </div>
 
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto min-h-0 -mx-6 px-6">
           {/* Current Phase with Navigation */}
           <div className="mb-6 p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Current Phase</p>
@@ -277,11 +279,10 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
               </div>
             )}
           </div>
+          </div>
 
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Reset Button */}
+          {/* Reset Button - Fixed at bottom */}
+          <div className="flex-shrink-0 pt-4 border-t border-gray-100 mt-4">
           <button
             onClick={resetFlow}
             className="w-full px-4 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
@@ -292,6 +293,7 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
             </svg>
             Reset Flow
           </button>
+          </div>
         </div>
       </div>
 
