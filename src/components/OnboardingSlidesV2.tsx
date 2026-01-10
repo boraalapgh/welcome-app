@@ -74,7 +74,7 @@ export function OnboardingSlidesV2({ onComplete }: OnboardingSlidesV2Props) {
   // Prototype panel controls
   const prototypeControls = useControls('Prototype Transition', {
     prototypeDuration: {
-      value: (p?.prototypeDuration as number) ?? 850,
+      value: (p?.prototypeDuration as number) ?? 550,
       min: 100,
       max: 1200,
       step: 50,
