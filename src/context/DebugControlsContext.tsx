@@ -10,7 +10,7 @@ function getStoredOnboardingStyle(): OnboardingStyle {
   if (stored === 'images' || stored === 'prototypes') {
     return stored;
   }
-  return 'images';
+  return 'prototypes';
 }
 
 interface DebugControlsContextType {
