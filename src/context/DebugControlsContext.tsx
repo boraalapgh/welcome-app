@@ -1,6 +1,17 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
 export type DebugElement = 'particles' | 'logo' | 'welcomePauseAuto' | 'transitions' | 'slides' | 'dashboard';
+export type OnboardingStyle = 'images' | 'prototypes';
+
+const ONBOARDING_STYLE_KEY = 'onboarding-style';
+
+function getStoredOnboardingStyle(): OnboardingStyle {
+  const stored = localStorage.getItem(ONBOARDING_STYLE_KEY);
+  if (stored === 'images' || stored === 'prototypes') {
+    return stored;
+  }
+  return 'images';
+}
 
 interface DebugControlsContextType {
   enabledElements: Set<DebugElement>;
@@ -8,12 +19,20 @@ interface DebugControlsContextType {
   toggle: (element: DebugElement) => void;
   enable: (element: DebugElement) => void;
   disable: (element: DebugElement) => void;
+  onboardingStyle: OnboardingStyle;
+  setOnboardingStyle: (style: OnboardingStyle) => void;
 }
 
 const DebugControlsContext = createContext<DebugControlsContextType | null>(null);
 
 export function DebugControlsProvider({ children }: { children: ReactNode }) {
   const [enabledElements, setEnabledElements] = useState<Set<DebugElement>>(new Set());
+  const [onboardingStyle, setOnboardingStyleState] = useState<OnboardingStyle>(getStoredOnboardingStyle);
+
+  const setOnboardingStyle = (style: OnboardingStyle) => {
+    setOnboardingStyleState(style);
+    localStorage.setItem(ONBOARDING_STYLE_KEY, style);
+  };
 
   const isEnabled = (element: DebugElement) => enabledElements.has(element);
 
@@ -42,7 +61,7 @@ export function DebugControlsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DebugControlsContext.Provider value={{ enabledElements, isEnabled, toggle, enable, disable }}>
+    <DebugControlsContext.Provider value={{ enabledElements, isEnabled, toggle, enable, disable, onboardingStyle, setOnboardingStyle }}>
       {children}
     </DebugControlsContext.Provider>
   );

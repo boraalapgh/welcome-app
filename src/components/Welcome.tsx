@@ -35,7 +35,7 @@ export function Welcome({ onComplete }: WelcomeProps) {
   }, [onComplete, pauseAutoAdvance]);
 
   return (
-    <div className="relative flex flex-col items-center justify-center gap-6 z-10">
+    <div className="relative h-screen flex flex-col items-center justify-center gap-6 z-10">
       {/* Logo with Orb and Stars */}
       <div
         className="relative z-10 animate-logo-appear overflow-visible"

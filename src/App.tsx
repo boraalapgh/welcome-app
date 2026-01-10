@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Welcome } from './components/Welcome';
 import { OnboardingSlides } from './components/OnboardingSlides';
+import { OnboardingSlidesV2 } from './components/OnboardingSlidesV2';
 import { AccountSetup } from './components/AccountSetup';
 import { Complete } from './components/Complete';
 import { Dashboard } from './components/Dashboard';
@@ -8,13 +9,13 @@ import { LearnerPanel } from './components/LearnerPanel';
 import { SettingsSidebar } from './components/SettingsSidebar';
 import { BlurredBackground } from './components/BlurredBackground';
 import { UserTypeProvider, useUserType } from './context/UserTypeContext';
-import { DebugControlsProvider } from './context/DebugControlsContext';
+import { DebugControlsProvider, useDebugControls } from './context/DebugControlsContext';
 import { TransitionProvider } from './context/TransitionContext';
 import { LevaControlsProvider } from './components/LevaControls';
 
 type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete' | 'dashboard';
 
-// Inner component that has access to UserType context
+// Inner component that has access to UserType and DebugControls context
 function PhaseRenderer({
   phase,
   onPhaseChange,
@@ -23,6 +24,7 @@ function PhaseRenderer({
   onPhaseChange: (phase: Phase) => void;
 }) {
   const { userTypeId } = useUserType();
+  const { onboardingStyle } = useDebugControls();
 
   const handleWelcomeComplete = () => {
     onPhaseChange('onboarding');
@@ -49,7 +51,9 @@ function PhaseRenderer({
         <Welcome onComplete={handleWelcomeComplete} />
       )}
       {phase === 'onboarding' && (
-        <OnboardingSlides onComplete={handleOnboardingComplete} />
+        onboardingStyle === 'prototypes'
+          ? <OnboardingSlidesV2 onComplete={handleOnboardingComplete} />
+          : <OnboardingSlides onComplete={handleOnboardingComplete} />
       )}
       {phase === 'setup' && (
         <AccountSetup onComplete={handleSetupComplete} />
@@ -74,7 +78,7 @@ function AppContent() {
 
   return (
     <UserTypeProvider onFlowReset={handleFlowReset}>
-      <div className="relative w-screen h-screen flex flex-col items-center justify-center">
+      <div className="relative w-screen lg:h-screen flex flex-col items-center justify-center">
         {/* Settings Sidebar - Prototype Only */}
         <SettingsSidebar currentPhase={phase} onPhaseChange={setPhase} />
 

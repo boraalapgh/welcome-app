@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { useUserType } from '../context/UserTypeContext';
-import { useDebugControls, type DebugElement } from '../context/DebugControlsContext';
+import { useDebugControls, type DebugElement, type OnboardingStyle } from '../context/DebugControlsContext';
 import { userTypeIds, onboardingContent, type UserTypeId } from '../config/onboarding-content';
 import { Switch } from '@/components/ui/switch';
+
+const onboardingStyles: { id: OnboardingStyle; label: string; description: string }[] = [
+  { id: 'images', label: 'Images', description: 'Classic carousel with images' },
+  { id: 'prototypes', label: 'Prototypes', description: 'Interactive product demos' },
+];
 
 type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete' | 'dashboard';
 
@@ -34,7 +39,7 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
   const [isOpen, setIsOpen] = useState(false);
   const [debugOpen, setDebugOpen] = useState(true);
   const { userTypeId, setUserType, resetFlow, config } = useUserType();
-  const { isEnabled, toggle } = useDebugControls();
+  const { isEnabled, toggle, onboardingStyle, setOnboardingStyle } = useDebugControls();
 
   const handleUserTypeChange = (id: UserTypeId) => {
     setUserType(id);
@@ -134,6 +139,34 @@ export function SettingsSidebar({ currentPhase, onPhaseChange }: SettingsSidebar
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
+            </div>
+          </div>
+
+          {/* Onboarding Style Selection */}
+          <div className="mb-6">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Onboarding Style</p>
+            <div className="flex gap-2">
+              {onboardingStyles.map((style) => {
+                const isSelected = style.id === onboardingStyle;
+                return (
+                  <button
+                    key={style.id}
+                    onClick={() => setOnboardingStyle(style.id)}
+                    className={`flex-1 text-center px-3 py-2 rounded-lg border-2 transition-all ${
+                      isSelected
+                        ? 'border-[#5a14bd] bg-[#5a14bd]/5'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <p className={`text-sm font-medium ${isSelected ? 'text-[#5a14bd]' : 'text-gray-900'}`}>
+                      {style.label}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {style.description}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
