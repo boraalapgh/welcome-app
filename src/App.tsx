@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Welcome } from './components/Welcome';
 import { OnboardingSlides } from './components/OnboardingSlides';
 import { OnboardingSlidesV2 } from './components/OnboardingSlidesV2';
+import { OnboardingSlidesV3 } from './components/OnboardingSlidesV3';
 import { AccountSetup } from './components/AccountSetup';
 import { Complete } from './components/Complete';
 import { Dashboard } from './components/Dashboard';
@@ -51,9 +52,11 @@ function PhaseRenderer({
         <Welcome onComplete={handleWelcomeComplete} />
       )}
       {phase === 'onboarding' && (
-        onboardingStyle === 'prototypes'
-          ? <OnboardingSlidesV2 onComplete={handleOnboardingComplete} />
-          : <OnboardingSlides onComplete={handleOnboardingComplete} />
+        onboardingStyle === 'video'
+          ? <OnboardingSlidesV3 onComplete={handleOnboardingComplete} />
+          : onboardingStyle === 'prototypes'
+            ? <OnboardingSlidesV2 onComplete={handleOnboardingComplete} />
+            : <OnboardingSlides onComplete={handleOnboardingComplete} />
       )}
       {phase === 'setup' && (
         <AccountSetup onComplete={handleSetupComplete} />

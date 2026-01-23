@@ -12,6 +12,7 @@ interface LevaStoresContextType {
   transitionsStore: LevaStore | null;
   slidesStore: LevaStore | null;
   dashboardStore: LevaStore | null;
+  videoSlidesStore: LevaStore | null;
 }
 
 const LevaStoresContext = createContext<LevaStoresContextType>({
@@ -20,6 +21,7 @@ const LevaStoresContext = createContext<LevaStoresContextType>({
   transitionsStore: null,
   slidesStore: null,
   dashboardStore: null,
+  videoSlidesStore: null,
 });
 
 export function useLevaStores() {
@@ -48,9 +50,10 @@ export function LevaControlsProvider({ children }: LevaControlsProviderProps) {
   const transitionsStore = useCreateStore();
   const slidesStore = useCreateStore();
   const dashboardStore = useCreateStore();
+  const videoSlidesStore = useCreateStore();
 
   return (
-    <LevaStoresContext.Provider value={{ logoStore, particlesStore, transitionsStore, slidesStore, dashboardStore }}>
+    <LevaStoresContext.Provider value={{ logoStore, particlesStore, transitionsStore, slidesStore, dashboardStore, videoSlidesStore }}>
       {children}
 
       {/* Logo controls panel */}
@@ -103,6 +106,17 @@ export function LevaControlsProvider({ children }: LevaControlsProviderProps) {
         hidden={!dashboardDebug}
         collapsed={false}
         titleBar={{ title: 'Dashboard Controls' }}
+        theme={{
+          sizes: { rootWidth: '320px' },
+        }}
+      />
+
+      {/* Video Slides controls panel - shares toggle with slides */}
+      <LevaPanel
+        store={videoSlidesStore}
+        hidden={!slidesDebug}
+        collapsed={false}
+        titleBar={{ title: 'Video Slides Controls' }}
         theme={{
           sizes: { rootWidth: '320px' },
         }}

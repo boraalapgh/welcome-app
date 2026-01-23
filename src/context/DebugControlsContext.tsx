@@ -1,13 +1,13 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
 export type DebugElement = 'particles' | 'logo' | 'welcomePauseAuto' | 'transitions' | 'slides' | 'dashboard';
-export type OnboardingStyle = 'images' | 'prototypes';
+export type OnboardingStyle = 'images' | 'prototypes' | 'video';
 
 const ONBOARDING_STYLE_KEY = 'onboarding-style';
 
 function getStoredOnboardingStyle(): OnboardingStyle {
   const stored = localStorage.getItem(ONBOARDING_STYLE_KEY);
-  if (stored === 'images' || stored === 'prototypes') {
+  if (stored === 'images' || stored === 'prototypes' || stored === 'video') {
     return stored;
   }
   return 'prototypes';

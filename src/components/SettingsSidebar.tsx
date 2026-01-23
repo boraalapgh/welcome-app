@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 const onboardingStyles: { id: OnboardingStyle; label: string; description: string }[] = [
   { id: 'images', label: 'Images', description: 'Classic carousel with images' },
   { id: 'prototypes', label: 'Prototypes', description: 'Interactive product demos' },
+  { id: 'video', label: 'Video', description: 'Looping video clips' },
 ];
 
 type Phase = 'welcome' | 'onboarding' | 'setup' | 'complete' | 'dashboard';

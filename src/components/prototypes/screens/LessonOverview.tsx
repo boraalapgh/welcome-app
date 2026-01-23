@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { ChevronRight, Clock, Play } from 'lucide-react';
 import { LESSON_ASSETS } from '../LessonPrototype';
 
@@ -7,6 +8,7 @@ interface LessonOverviewProps {
   onNavigate: (screen: Screen) => void;
   onOpenExpertProfile: () => void;
   onOpenWIIFM: () => void;
+  autoScroll?: boolean;
 }
 
 interface ActivityCardProps {
@@ -36,9 +38,73 @@ function ActivityCard({ title, description, onClick }: ActivityCardProps) {
   );
 }
 
-export function LessonOverview({ onNavigate, onOpenExpertProfile, onOpenWIIFM }: LessonOverviewProps) {
+export function LessonOverview({ onNavigate, onOpenExpertProfile, onOpenWIIFM, autoScroll = false }: LessonOverviewProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Smooth easing function for organic scroll feel
+  const easeInOutCubic = (t: number): number => {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
+
+  // Custom smooth scroll with easing
+  const smoothScrollTo = (container: HTMLElement, target: number, duration: number): Promise<void> => {
+    return new Promise((resolve) => {
+      const start = container.scrollTop;
+      const distance = target - start;
+      const startTime = performance.now();
+
+      const animateScroll = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = easeInOutCubic(progress);
+
+        container.scrollTop = start + distance * eased;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(animateScroll);
+    });
+  };
+
+  // Auto-scroll animation on mount to hint at scrollable content
+  useEffect(() => {
+    if (!autoScroll || !scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const scrollDistance = 100; // How far to scroll down
+    let cancelled = false;
+
+    const runAnimation = async () => {
+      // Wait a moment before starting
+      await new Promise(resolve => setTimeout(resolve, 600));
+      if (cancelled) return;
+
+      // Scroll down smoothly
+      await smoothScrollTo(container, scrollDistance, 1000);
+      if (cancelled) return;
+
+      // Pause at bottom
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (cancelled) return;
+
+      // Scroll back up
+      await smoothScrollTo(container, 0, 800);
+    };
+
+    runAnimation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [autoScroll]);
+
   return (
-    <div className="flex flex-col h-full bg-[#2e0a61] overflow-y-auto">
+    <div ref={scrollContainerRef} className="flex flex-col h-full bg-[#2e0a61] overflow-y-auto">
       {/* Back button */}
       {/* <button className="absolute top-8 left-6 bg-white rounded-full p-2 shadow-[0px_4px_40px_rgba(0,0,0,0.16)] z-10">
         <ChevronLeft size={24} className="text-[#5a14bd]" />

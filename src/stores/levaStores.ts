@@ -3,6 +3,7 @@ const STORAGE_KEY_PARTICLES = 'leva-particle-controls';
 const STORAGE_KEY_TRANSITIONS = 'leva-transition-controls';
 const STORAGE_KEY_SLIDES = 'leva-slide-controls';
 const STORAGE_KEY_DASHBOARD = 'leva-dashboard-controls';
+const STORAGE_KEY_VIDEO_SLIDES = 'leva-video-slide-controls';
 
 // Load persisted values from localStorage
 function loadPersistedValues(key: string): Record<string, unknown> | null {
@@ -58,6 +59,14 @@ export function persistDashboardValues(values: Record<string, unknown>) {
   }
 }
 
+export function persistVideoSlideValues(values: Record<string, unknown>) {
+  try {
+    localStorage.setItem(STORAGE_KEY_VIDEO_SLIDES, JSON.stringify(values));
+  } catch (e) {
+    console.warn('Failed to persist video slide values:', e);
+  }
+}
+
 // Clear persisted values (for reset)
 export function clearPersistedValues() {
   localStorage.removeItem(STORAGE_KEY_LOGO);
@@ -65,6 +74,7 @@ export function clearPersistedValues() {
   localStorage.removeItem(STORAGE_KEY_TRANSITIONS);
   localStorage.removeItem(STORAGE_KEY_SLIDES);
   localStorage.removeItem(STORAGE_KEY_DASHBOARD);
+  localStorage.removeItem(STORAGE_KEY_VIDEO_SLIDES);
 }
 
 export function clearLogoValues() {
@@ -87,9 +97,14 @@ export function clearDashboardValues() {
   localStorage.removeItem(STORAGE_KEY_DASHBOARD);
 }
 
+export function clearVideoSlideValues() {
+  localStorage.removeItem(STORAGE_KEY_VIDEO_SLIDES);
+}
+
 // Get initial values (used by components to initialize their controls)
 export const persistedLogoValues = loadPersistedValues(STORAGE_KEY_LOGO);
 export const persistedParticleValues = loadPersistedValues(STORAGE_KEY_PARTICLES);
 export const persistedTransitionValues = loadPersistedValues(STORAGE_KEY_TRANSITIONS);
 export const persistedSlideValues = loadPersistedValues(STORAGE_KEY_SLIDES);
 export const persistedDashboardValues = loadPersistedValues(STORAGE_KEY_DASHBOARD);
+export const persistedVideoSlideValues = loadPersistedValues(STORAGE_KEY_VIDEO_SLIDES);

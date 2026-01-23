@@ -10,6 +10,8 @@ export interface OnboardingSlide {
   description: string;
   image?: string;
   prototype?: PrototypeType; // Which prototype to show on right panel for this slide
+  videoUrl?: string;   // Video URL for V3 video-based onboarding
+  posterUrl?: string;  // Poster/thumbnail for video while loading
 }
 
 export interface UserTypeConfig {
@@ -24,22 +26,28 @@ export const onboardingContent: Record<UserTypeId, UserTypeConfig> = {
     steps: ['terms', 'profile', 'organization', 'invites'],
     slides: [
       {
-        title: 'Build Your Learning Empire',
-        description: 'Set up your organization and invite your team to create impactful courses together.',
+        title: 'Capture your knowledge',
+        description: 'Instantly build multi-format lessons that engage learners and scale your expertise.',
         image: '/onboarding-1.jpg',
         prototype: 'lesson',
+        videoUrl: 'https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_30fps.mp4',
+        posterUrl: '/onboarding-1.jpg',
       },
       {
-        title: 'Manage With Ease',
-        description: 'Full administrative control over content, users, and analytics in one powerful dashboard.',
+        title: 'Publish and share',
+        description: 'Share your courses with your team or the world with just a few clicks.',
         image: '/onboarding-2.jpg',
         prototype: 'ai-interview',
+        videoUrl: 'https://videos.pexels.com/video-files/5377684/5377684-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-2.jpg',
       },
       {
-        title: 'Scale Your Impact',
-        description: 'From onboarding to upskilling, deliver learning experiences that transform your organization.',
+        title: 'Track engagement',
+        description: 'Monitor learner progress and engagement with detailed analytics and insights.',
         image: '/onboarding-3.jpg',
         prototype: 'publish',
+        videoUrl: 'https://videos.pexels.com/video-files/7579962/7579962-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-3.jpg',
       },
     ],
   },
@@ -52,18 +60,24 @@ export const onboardingContent: Record<UserTypeId, UserTypeConfig> = {
         description: "You've been invited to help manage and grow your organization's learning platform.",
         image: '/onboarding-1.jpg',
         prototype: 'lesson',
+        videoUrl: 'https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_30fps.mp4',
+        posterUrl: '/onboarding-1.jpg',
       },
       {
         title: 'Collaborate & Create',
         description: 'Work alongside your team to build courses, manage content, and track learner progress.',
         image: '/onboarding-2.jpg',
         prototype: 'ai-interview',
+        videoUrl: 'https://videos.pexels.com/video-files/5377684/5377684-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-2.jpg',
       },
       {
         title: 'Make an Impact',
         description: 'Your expertise will help shape the learning experience for everyone in your organization.',
         image: '/onboarding-3.jpg',
         prototype: 'publish',
+        videoUrl: 'https://videos.pexels.com/video-files/7579962/7579962-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-3.jpg',
       },
     ],
   },
@@ -76,18 +90,24 @@ export const onboardingContent: Record<UserTypeId, UserTypeConfig> = {
         description: 'Transform your knowledge into engaging courses that inspire and educate.',
         image: '/onboarding-1.jpg',
         prototype: 'lesson',
+        videoUrl: 'https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_30fps.mp4',
+        posterUrl: '/onboarding-1.jpg',
       },
       {
         title: 'Create With AI Assistance',
         description: 'Our AI-powered tools help you structure, write, and enhance your course content.',
         image: '/onboarding-2.jpg',
         prototype: 'ai-interview',
+        videoUrl: 'https://videos.pexels.com/video-files/5377684/5377684-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-2.jpg',
       },
       {
         title: 'Reach Your Audience',
         description: 'Publish your courses and see the impact of your expertise on learners worldwide.',
         image: '/onboarding-3.jpg',
         prototype: 'publish',
+        videoUrl: 'https://videos.pexels.com/video-files/7579962/7579962-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-3.jpg',
       },
     ],
   },
@@ -100,18 +120,24 @@ export const onboardingContent: Record<UserTypeId, UserTypeConfig> = {
         description: 'Access curated courses designed to help you grow professionally and personally.',
         image: '/onboarding-1.jpg',
         prototype: 'lesson',
+        videoUrl: 'https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_30fps.mp4',
+        posterUrl: '/onboarding-1.jpg',
       },
       {
         title: 'Learn at Your Own Pace',
         description: 'Flexible learning paths that fit your schedule and adapt to your progress.',
         image: '/onboarding-2.jpg',
         prototype: 'ai-interview',
+        videoUrl: 'https://videos.pexels.com/video-files/5377684/5377684-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-2.jpg',
       },
       {
         title: 'Track Your Growth',
         description: 'Earn certifications, track achievements, and see your skills develop over time.',
         image: '/onboarding-3.jpg',
         prototype: 'publish',
+        videoUrl: 'https://videos.pexels.com/video-files/7579962/7579962-uhd_2560_1440_25fps.mp4',
+        posterUrl: '/onboarding-3.jpg',
       },
     ],
   },

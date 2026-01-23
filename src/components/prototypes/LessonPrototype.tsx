@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LessonOverview } from './screens/LessonOverview';
 import { QuickDive } from './screens/QuickDive';
 import { DailyDilemma } from './screens/DailyDilemma';
@@ -6,6 +6,7 @@ import { InPractice } from './screens/InPractice';
 import { ExpertProfileModal } from './modals/ExpertProfileModal';
 import { WhatIsInItForMeModal } from './modals/WhatIsInItForMeModal';
 import { PhoneFrame } from './shared/PhoneFrame';
+import { MousePointerClick } from 'lucide-react';
 
 type Screen = 'overview' | 'quick-dive' | 'daily-dilemma' | 'in-practice';
 type Modal = 'expert-profile' | 'wiifm' | null;
@@ -20,9 +21,20 @@ export const LESSON_ASSETS = {
 export function LessonPrototype() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('overview');
   const [activeModal, setActiveModal] = useState<Modal>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  // Trigger auto-scroll only on initial mount
+  useEffect(() => {
+    // Small delay to ensure content is rendered
+    const timer = setTimeout(() => {
+      setShouldAutoScroll(true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const navigateTo = (screen: Screen) => {
     setCurrentScreen(screen);
+    setShouldAutoScroll(false); // Disable auto-scroll after user navigates
   };
 
   const goBack = () => {
@@ -38,6 +50,7 @@ export function LessonPrototype() {
   };
 
   return (
+    <div className="flex flex-col items-center justify-center h-full w-full">
     <PhoneFrame>
       {/* Screen content */}
       {currentScreen === 'overview' && (
@@ -45,6 +58,7 @@ export function LessonPrototype() {
           onNavigate={navigateTo}
           onOpenExpertProfile={() => openModal('expert-profile')}
           onOpenWIIFM={() => openModal('wiifm')}
+          autoScroll={shouldAutoScroll}
         />
       )}
       {currentScreen === 'quick-dive' && (
@@ -65,5 +79,14 @@ export function LessonPrototype() {
         <WhatIsInItForMeModal onClose={closeModal} />
       )}
     </PhoneFrame>
+
+      {/* Interactive hint text */}
+      <div className="flex-shrink-0 mt-4">
+        <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-[#f3ecfd] text-sm text-[#5a14bd]">
+          <MousePointerClick size={16} />
+          <span>This is interactive, feel free to explore</span>
+        </div>
+      </div>
+    </div>
   );
 }
