@@ -19,7 +19,16 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
   const { pageExitDuration, pageScaleFrom, getPageTransition } = useTransitions();
   const { videoSlidesStore } = useLevaStores();
 
-  // Get persisted values or use defaults
+  // Clear old persisted values on first load to ensure clean state
+  useEffect(() => {
+    const hasCleared = sessionStorage.getItem('video-slides-cleared');
+    if (!hasCleared) {
+      clearVideoSlideValues();
+      sessionStorage.setItem('video-slides-cleared', 'true');
+    }
+  }, []);
+
+  // Get persisted values or use defaults (but ignore rotation/cardFade - always use new defaults)
   const p = persistedVideoSlideValues as Record<string, unknown> | null;
 
   // Build store option - only include if store is available
@@ -84,7 +93,7 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
   // Video Card Controls
   const videoControls = useControls('Video Card', {
     rotation: {
-      value: (p?.videoRotation as number) ?? -12,
+      value: 0, // Always 0 - no rotation per design
       min: -25,
       max: 25,
       step: 1,
@@ -98,7 +107,7 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
       label: 'Scale',
     },
     cardFade: {
-      value: (p?.cardFade as boolean) ?? true,
+      value: false, // Disabled - keep video container always visible
       label: 'Fade Card Too',
     },
   }, storeOption);
@@ -171,8 +180,8 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
   const [isMounted, setIsMounted] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(1); // For card container fade
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -183,11 +192,11 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle slide transition with fade
+  // Handle slide transition with fade - simplified to always sync displaySlide
   useEffect(() => {
-    if (currentSlide !== displaySlide && !isTransitioning) {
-      // Start fade out
-      setIsTransitioning(true);
+    if (currentSlide !== displaySlide) {
+      // Start fade out - card fades away
+      setCardOpacity(0);
 
       // After fade out, change the display slide and fade in
       const fadeOutTimer = setTimeout(() => {
@@ -195,13 +204,13 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
 
         // Small delay to ensure DOM updates, then fade in
         setTimeout(() => {
-          setIsTransitioning(false);
+          setCardOpacity(1);
         }, 50);
-      }, fadeControls.fadeDuration);
+      }, fadeControls.fadeDuration / 2); // Half duration for fade out
 
       return () => clearTimeout(fadeOutTimer);
     }
-  }, [currentSlide, displaySlide, isTransitioning, fadeControls.fadeDuration]);
+  }, [currentSlide, displaySlide, fadeControls.fadeDuration]);
 
   // Auto-advance timer
   const startTimer = useCallback(() => {
@@ -250,7 +259,7 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
 
   // Handle slide change via title click
   const goToSlide = (index: number) => {
-    if (index === currentSlide || isTransitioning) return;
+    if (index === currentSlide) return; // Only skip if clicking the already active slide
     setCurrentSlide(index);
     setProgressKey((k) => k + 1);
   };
@@ -261,13 +270,12 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
     setTimeout(onComplete, pageExitDuration);
   };
 
-  // Get video card style
+  // Get video card style - uses cardOpacity for fade transitions
   const getCardStyle = () => {
-    const shouldFade = videoControls.cardFade && isTransitioning;
     return {
-      opacity: (!isMounted || shouldFade) ? 0 : 1,
+      opacity: !isMounted ? 0 : cardOpacity,
       transform: `rotate(${videoControls.rotation}deg) scale(${videoControls.scale})`,
-      transition: `opacity ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing}, transform 300ms ease-out`,
+      transition: `opacity ${fadeControls.fadeDuration / 2}ms ${fadeControls.fadeEasing}, transform 300ms ease-out`,
     };
   };
 
@@ -279,8 +287,6 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
         opacity: !isMounted || isExiting ? 0 : 1,
         transform: !isMounted || isExiting ? `scale(${pageScaleFrom})` : 'scale(1)',
       }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       {/* Left Panel - Video Card */}
       <div className="flex-1 flex items-center justify-center lg:justify-end lg:pr-16 max-lg:order-first max-lg:pt-8">
@@ -289,7 +295,7 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
           style={getCardStyle()}
         >
           {/* Video Card with shadow */}
-          <div className="relative w-[420px] h-[300px] rounded-2xl overflow-hidden bg-white shadow-[0_25px_80px_-12px_rgba(0,0,0,0.25)]">
+          <div className="relative w-[471px] h-[628px] rounded-[24px] overflow-hidden bg-white shadow-[1px_4px_12px_0px_rgba(0,0,0,0.25)]">
             <video
               ref={videoRef}
               key={slides[displaySlide]?.videoUrl}
@@ -318,56 +324,77 @@ export function OnboardingSlidesV3({ onComplete }: OnboardingSlidesV3Props) {
         </button>
 
         {/* Main Content Area */}
-        <div className="flex flex-col max-w-md">
+        <div className="flex flex-col w-[338px] pt-10">
           {/* Navigation Items - each with title, description, and progress bar */}
-          <nav className="flex flex-col gap-6">
+          <nav
+            className="flex flex-col"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
             {slides.map((slide, index) => {
               const isActive = index === currentSlide;
+              const isLast = index === slides.length - 1;
               return (
                 <button
                   key={index}
                   onClick={() => goToSlide(index)}
-                  className="text-left group relative flex flex-col"
-                  disabled={isTransitioning}
+                  className={`text-left group relative flex flex-col px-4 py-4 ${
+                    !isActive ? 'cursor-pointer hover:bg-gray-50' : ''
+                  }`}
                 >
-                  {/* Title */}
+                  {/* Title - smooth color transition with Leva-controlled timing */}
                   <span
-                    className={`text-[20px] font-bold transition-colors duration-200 ${
-                      isActive
-                        ? 'text-[#1a1a1a]'
-                        : 'text-[#b3b3b3] hover:text-[#888888]'
-                    }`}
+                    className="text-[25px] font-extrabold leading-[30px]"
+                    style={{
+                      color: isActive ? '#1a1a1a' : '#666666',
+                      transform: isActive ? 'translateY(0)' : `translateY(${textControls.translateY}px)`,
+                      transition: `color ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing} ${textControls.titleDelay}ms, transform ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing} ${textControls.titleDelay}ms`,
+                    }}
                   >
                     {slide.title}
                   </span>
 
-                  {/* Description - below title */}
-                  <span
-                    className={`text-[15px] leading-relaxed mt-1 transition-colors duration-200 ${
-                      isActive
-                        ? 'text-[#666666]'
-                        : 'text-[#c4c4c4] hover:text-[#999999]'
-                    }`}
+                  {/* Description - fade in/out with Leva-controlled timing */}
+                  <div
+                    className="overflow-hidden"
+                    style={{
+                      maxHeight: isActive ? '100px' : '0px',
+                      opacity: isActive ? 1 : 0,
+                      transform: isActive ? 'translateY(0)' : `translateY(${textControls.translateY}px)`,
+                      transition: `max-height ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing} ${textControls.descriptionDelay}ms, opacity ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing} ${textControls.descriptionDelay}ms, transform ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing} ${textControls.descriptionDelay}ms`,
+                    }}
                   >
-                    {slide.description}
-                  </span>
+                    <span className="block text-[18px] font-medium leading-[27px] mt-2 text-[#1a1a1a]">
+                      {slide.description}
+                    </span>
+                  </div>
 
-                  {/* Progress bar - purple gradient line, only on active item */}
-                  {isActive && (
-                    <div className="mt-3 h-[3px] w-full rounded-full overflow-hidden">
+                  {/* Border line - animates height between 1px (inactive) and 3px (active) */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0"
+                    style={{
+                      height: isActive ? '3px' : isLast ? '0px' : '1px',
+                      background: isActive
+                        ? 'linear-gradient(90deg, #b3b3b3 0%, #999999 100%)'
+                        : '#e6e6e6',
+                      transition: `height ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing}, background ${fadeControls.fadeDuration}ms ${fadeControls.fadeEasing}`,
+                    }}
+                  >
+                    {/* Progress fill - animates over the grey border when active */}
+                    {isActive && (
                       <div
                         key={progressKey}
-                        className="h-full rounded-full"
+                        className="h-full"
                         style={{
-                          background: 'linear-gradient(90deg, #5a14bd 0%, #8b5cf6 100%)',
+                          background: 'linear-gradient(90deg, #b3b3b3 0%, #666666 100%)',
                           animation: isHovered && timerControls.pauseOnHover
                             ? 'none'
                             : `progressFill ${timerControls.autoAdvanceDuration}ms linear forwards`,
                           animationPlayState: isHovered && timerControls.pauseOnHover ? 'paused' : 'running',
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </button>
               );
             })}
